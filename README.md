@@ -14,6 +14,10 @@ One codebase, three targets: it runs as a web app and as a native **iOS**
 |---|---|---|
 | ![Home](docs/screenshots/01-home.png) | ![Results](docs/screenshots/03-results.png) | ![Detail](docs/screenshots/04-detail.png) |
 
+| Trip invites | Dark mode |
+|---|---|
+| ![Join](docs/screenshots/05-join.png) | ![Dark](docs/screenshots/dark-results.png) |
+
 ## How the ranking works
 
 For every candidate city, each traveler gets an estimated cost:
@@ -31,10 +35,31 @@ Cities are then scored on a blend you control:
   (measured as 1 − coefficient of variation)
 - Cities that blow someone's stated budget are penalised and flagged
 
-Prices come from a deterministic estimator today (`src/lib/pricing/`), behind
-a `PriceProvider` interface designed to be swapped for live Amadeus/Kiwi
-quotes — see [docs/BRAINSTORM.md](docs/BRAINSTORM.md) for the full product
-brainstorm and roadmap.
+## Sharing a trip
+
+Every trip has a **Share** action that produces a link with the whole trip
+encoded in the URL — no accounts, no backend. Friends who open it land on the
+`/join` screen, get a local copy saved to their device, and can add themselves
+or tweak budgets.
+
+## Pricing: estimates now, live quotes when you want them
+
+By default prices come from a deterministic estimator (`src/lib/pricing/`):
+distance-banded return fares adjusted for airport competitiveness and season,
+plus per-city hotel/food indices. Same inputs → same prices, fully offline.
+
+For live quotes, run the bundled Amadeus proxy (keeps your API key off the
+client) and point the app at it:
+
+```bash
+AMADEUS_CLIENT_ID=xxx AMADEUS_CLIENT_SECRET=yyy node server/pricing-proxy.mjs
+EXPO_PUBLIC_PRICE_PROXY_URL=http://localhost:8787 npx expo start
+```
+
+Quotes are cached for 24h per route+month, and any route the API can't price
+falls back to the estimator automatically (see `FallbackProvider`). See
+[docs/BRAINSTORM.md](docs/BRAINSTORM.md) for the full product brainstorm and
+roadmap.
 
 ## Getting started
 
