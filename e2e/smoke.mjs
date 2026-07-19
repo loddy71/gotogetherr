@@ -41,11 +41,15 @@ const server = createServer((req, res) => {
 }).listen(PORT);
 await new Promise((r) => setTimeout(r, 300));
 
+// Prefer an explicit CHROMIUM_PATH, then the sandbox's pre-installed browser,
+// otherwise let Playwright resolve its own managed install (CI).
+const chromiumPath =
+  process.env.CHROMIUM_PATH ??
+  (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+
 let browser;
 try {
-  browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium',
-  });
+  browser = await chromium.launch(chromiumPath ? { executablePath: chromiumPath } : {});
   const page = await browser.newPage({ viewport: { width: 420, height: 860 } });
   page.on('pageerror', (e) => console.log('PAGEERROR:', e.message));
 
