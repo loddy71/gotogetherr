@@ -1,15 +1,16 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/button';
 import { ResultCard } from '@/components/result-card';
 import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing, travelerColor } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { monthName } from '@/lib/format';
 import { rankDestinations } from '@/lib/scoring';
+import { shareTrip } from '@/lib/share';
 import { useTrip, useTrips } from '@/lib/store';
 import type { DestinationResult } from '@/lib/types';
 
@@ -29,6 +30,7 @@ export default function ResultsScreen() {
   const trip = useTrip(id);
   const { saveTrip, hydrated } = useTrips();
   const [results, setResults] = useState<DestinationResult[] | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!trip) return;
@@ -53,18 +55,24 @@ export default function ResultsScreen() {
     );
   }
 
+  const share = async () => {
+    const outcome = await shareTrip(trip);
+    if (outcome === 'copied') {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
   return (
     <ThemedView style={styles.screen}>
       <Stack.Screen
         options={{
           title: trip.name,
           headerRight: () => (
-            <Button
-              title="Edit"
-              variant="secondary"
-              style={styles.editButton}
-              onPress={() => router.push(`/new-trip?id=${trip.id}`)}
-            />
+            <View style={{ flexDirection: 'row', gap: Spacing.three }}>
+              <HeaderAction label={copied ? 'Copied!' : 'Share'} onPress={share} />
+              <HeaderAction label="Edit" onPress={() => router.push(`/new-trip?id=${trip.id}`)} />
+            </View>
           ),
         }}
       />
@@ -72,13 +80,23 @@ export default function ResultsScreen() {
         <FlatList
           data={results ?? []}
           keyExtractor={(r) => r.cityCode}
-          contentContainerStyle={{ gap: Spacing.two, paddingVertical: Spacing.three }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ gap: Spacing.two + 4, paddingVertical: Spacing.three }}
           ListHeaderComponent={
-            <View style={{ gap: Spacing.two, paddingBottom: Spacing.two }}>
+            <View style={{ gap: Spacing.two + 4, paddingBottom: Spacing.two }}>
               <ThemedText type="small" themeColor="textSecondary">
-                {monthName(trip.month)} · {trip.nights} nights ·{' '}
-                {trip.travelers.map((t) => t.name).join(', ')}
+                {monthName(trip.month)} · {trip.nights} nights
               </ThemedText>
+              <View style={styles.legend}>
+                {trip.travelers.map((t, i) => (
+                  <View key={t.id} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: travelerColor(i) }]} />
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {t.name}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
               <Segmented<RankMode>
                 options={[
                   { value: 'cheapest', label: 'Cheapest' },
@@ -89,8 +107,8 @@ export default function ResultsScreen() {
                 onChange={(mode) => saveTrip({ ...trip, fairnessWeight: MODE_WEIGHT[mode] })}
               />
               <ThemedText type="small" themeColor="textSecondary">
-                Prices are estimates per person: return flight + shared mid-range hotel + daily
-                costs. Tap a city for the full breakdown.
+                Estimates per person: return flight + shared mid-range hotel + daily costs. The bar
+                shows how the cost splits across the group — tap a city for details.
               </ThemedText>
             </View>
           }
@@ -112,6 +130,17 @@ export default function ResultsScreen() {
   );
 }
 
+function HeaderAction({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8}>
+      <ThemedText type="smallBold" style={{ color: theme.tint }}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
@@ -122,8 +151,20 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: Spacing.three,
   },
-  editButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+    rowGap: Spacing.one,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });

@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { CityPicker } from '@/components/city-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { MONTHS, newId } from '@/lib/format';
 import { useTrip, useTrips } from '@/lib/store';
@@ -74,6 +75,7 @@ export default function TripFormScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           <Field label="Trip name">
             <TextInput
@@ -81,7 +83,14 @@ export default function TripFormScreen() {
               onChangeText={setName}
               placeholder="e.g. The lads' reunion"
               placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.card,
+                  color: theme.text,
+                  borderColor: theme.border,
+                },
+              ]}
             />
           </Field>
 
@@ -98,11 +107,12 @@ export default function TripFormScreen() {
                       style={[
                         styles.chip,
                         {
-                          backgroundColor: selected ? '#208AEF' : theme.backgroundElement,
+                          backgroundColor: selected ? theme.tint : theme.card,
+                          borderColor: selected ? theme.tint : theme.border,
                         },
                       ]}>
                       <ThemedText
-                        type="small"
+                        type="smallBold"
                         style={selected ? { color: '#fff' } : undefined}
                         themeColor={selected ? undefined : 'textSecondary'}>
                         {label.slice(0, 3)}
@@ -121,7 +131,7 @@ export default function TripFormScreen() {
                   onPress={() => setNights((n) => Math.max(1, n - 1))}
                   style={styles.stepButton}
                 />
-                <ThemedText type="smallBold" style={styles.stepValue}>
+                <ThemedText type="stat" style={styles.stepValue}>
                   {nights}
                 </ThemedText>
                 <Button
@@ -136,10 +146,9 @@ export default function TripFormScreen() {
 
           <Field label="Who's coming?">
             {travelers.map((traveler, i) => (
-              <View
-                key={traveler.id}
-                style={[styles.travelerCard, { backgroundColor: theme.backgroundElement }]}>
+              <Card key={traveler.id} style={styles.travelerCard}>
                 <View style={styles.travelerHeader}>
+                  <View style={[styles.travelerDot, { backgroundColor: travelerColor(i) }]} />
                   <TextInput
                     value={traveler.name}
                     onChangeText={(v) => updateTraveler(traveler.id, { name: v })}
@@ -151,6 +160,7 @@ export default function TripFormScreen() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Remove ${traveler.name || `friend ${i + 1}`}`}
+                      hitSlop={8}
                       onPress={() =>
                         setTravelers((prev) => prev.filter((t) => t.id !== traveler.id))
                       }>
@@ -172,9 +182,16 @@ export default function TripFormScreen() {
                   keyboardType="number-pad"
                   placeholder="Budget in USD (optional)"
                   placeholderTextColor={theme.textSecondary}
-                  style={[styles.input, { backgroundColor: theme.backgroundSelected, color: theme.text }]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.background,
+                      color: theme.text,
+                      borderColor: theme.border,
+                    },
+                  ]}
                 />
-              </View>
+              </Card>
             ))}
             <Button
               title="＋ Add a friend"
@@ -202,8 +219,8 @@ export default function TripFormScreen() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <View style={{ gap: Spacing.two }}>
-      <ThemedText type="smallBold" themeColor="textSecondary">
+    <View style={{ gap: Spacing.two + 2 }}>
+      <ThemedText type="label" themeColor="textSecondary">
         {label.toUpperCase()}
       </ThemedText>
       {children}
@@ -230,17 +247,19 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.six,
   },
   input: {
-    borderRadius: 12,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: Spacing.three,
     fontSize: 16,
   },
   chips: {
     flexDirection: 'row',
-    gap: Spacing.one,
+    gap: Spacing.one + 2,
   },
   chip: {
-    borderRadius: 999,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
@@ -260,23 +279,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   stepValue: {
-    minWidth: 28,
+    minWidth: 32,
     textAlign: 'center',
   },
   travelerCard: {
-    borderRadius: 16,
     padding: Spacing.three,
-    gap: Spacing.two,
+    gap: Spacing.two + 2,
   },
   travelerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
+    gap: Spacing.two + 2,
+  },
+  travelerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   nameInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     paddingVertical: 4,
   },

@@ -53,8 +53,8 @@ when you pay $200?".
 | Stage | Source | Status |
 |---|---|---|
 | 1 | Deterministic estimator (distance-banded fares, hub factor, seasonality, city hotel/food indices) | ✅ shipped — free, offline, stable rankings |
-| 2 | Live flight quotes via Amadeus Self-Service / Kiwi Tequila behind a server proxy, cached per route+month | stub in `src/lib/pricing/amadeus-provider.ts` |
-| 3 | Hotel quotes (Amadeus Hotel Search / Booking.com affiliate) + deep links to book | planned |
+| 2 | Live flight + hotel quotes via Amadeus Self-Service behind `server/pricing-proxy.mjs`, cached per route+month, per-route fallback to estimates | ✅ shipped (opt-in via `EXPO_PUBLIC_PRICE_PROXY_URL`) |
+| 3 | "Live" vs "estimate" labels in the UI, booking deep links (affiliate) | planned |
 
 Lessons baked into the provider interface:
 
@@ -84,7 +84,8 @@ Lessons baked into the provider interface:
 - Local persistence, works fully offline
 
 **v1.1 — the social loop:**
-- Shareable trip link; friends open it and drop in their own city + budget
+- ✅ Shareable trip link (trip encoded in the URL, zero-backend `/join` flow);
+  friends open it and drop in their own city + budget
 - Voting/vetoes on the shortlist ("no beach cities", "must have nightlife")
 - Vibe filters powered by the existing tags (beach, nightlife, food, nature…)
 

@@ -41,7 +41,7 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
       <Pressable
         accessibilityRole="button"
         onPress={() => setOpen(true)}
-        style={[styles.field, { backgroundColor: theme.backgroundElement }]}>
+        style={[styles.field, { backgroundColor: theme.background, borderColor: theme.border }]}>
         <ThemedText themeColor={value ? 'text' : 'textSecondary'}>
           {value ? cityLabel(value) : placeholder}
         </ThemedText>
@@ -93,7 +93,8 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
 
 const styles = StyleSheet.create({
   field: {
-    borderRadius: 12,
+    borderRadius: 10,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: Spacing.three,
   },

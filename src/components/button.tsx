@@ -1,7 +1,8 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { BrandGradient, DangerColor, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
@@ -10,27 +11,45 @@ type ButtonProps = Omit<PressableProps, 'style'> & {
   style?: ViewStyle;
 };
 
-const ACCENT = '#208AEF';
-
 export function Button({ title, variant = 'primary', style, disabled, ...rest }: ButtonProps) {
   const theme = useTheme();
-  const background =
-    variant === 'primary' ? ACCENT : variant === 'destructive' ? '#E5484D' : theme.backgroundElement;
-  const color = variant === 'secondary' ? theme.text : '#ffffff';
+
+  const label = (
+    <ThemedText
+      type="smallBold"
+      style={{ color: variant === 'secondary' ? theme.text : '#ffffff', fontSize: 15 }}>
+      {title}
+    </ThemedText>
+  );
 
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       style={({ pressed }) => [
-        styles.base,
-        { backgroundColor: background, opacity: disabled ? 0.4 : pressed ? 0.75 : 1 },
+        { opacity: disabled ? 0.4 : pressed ? 0.8 : 1, borderRadius: Radius.md },
+        variant !== 'primary' && [
+          styles.base,
+          {
+            backgroundColor: variant === 'destructive' ? DangerColor : theme.backgroundElement,
+            borderWidth: variant === 'secondary' ? 1 : 0,
+            borderColor: theme.border,
+          },
+        ],
         style,
       ]}
       {...rest}>
-      <ThemedText type="smallBold" style={{ color }}>
-        {title}
-      </ThemedText>
+      {variant === 'primary' ? (
+        <LinearGradient
+          colors={BrandGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.base, styles.gradient]}>
+          {label}
+        </LinearGradient>
+      ) : (
+        label
+      )}
     </Pressable>
   );
 }
@@ -39,8 +58,11 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: Spacing.four,
-    borderRadius: 12,
+    borderRadius: Radius.md,
+  },
+  gradient: {
+    width: '100%',
   },
 });
