@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type SegmentedProps<T extends string> = {
@@ -10,11 +10,15 @@ type SegmentedProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
+/**
+ * Tabs marked by an inked rule under the active option — a printed index,
+ * not a pill switch.
+ */
 export function Segmented<T extends string>({ options, value, onChange }: SegmentedProps<T>) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.track, { backgroundColor: theme.backgroundSelected }]}>
+    <View style={[styles.track, { borderBottomColor: theme.border }]}>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -23,16 +27,14 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
             accessibilityRole="button"
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
-            style={[
+            style={({ pressed }) => [
               styles.segment,
-              selected && [
-                styles.selected,
-                { backgroundColor: theme.card, borderColor: theme.border },
-              ],
+              { borderBottomColor: selected ? theme.tint : 'transparent' },
+              pressed && { opacity: 0.6 },
             ]}>
             <ThemedText
-              type={selected ? 'smallBold' : 'small'}
-              themeColor={selected ? 'text' : 'textSecondary'}
+              type="label"
+              style={{ color: selected ? theme.tint : theme.textSecondary }}
               numberOfLines={1}>
               {option.label}
             </ThemedText>
@@ -46,21 +48,12 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    borderRadius: Radius.sm + 2,
-    padding: 3,
+    borderBottomWidth: 1,
   },
   segment: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
-  },
-  selected: {
-    borderWidth: 1,
-    shadowColor: '#10102E',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    paddingVertical: Spacing.two + 2,
+    paddingRight: Spacing.four,
+    marginBottom: -1,
+    borderBottomWidth: 2,
   },
 });

@@ -1,21 +1,21 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { Card } from '@/components/card';
+import { Rule } from '@/components/rule';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BrandGradient, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { cityLabel } from '@/lib/data/cities';
+import { CITIES, getCity } from '@/lib/data/cities';
 import { monthName } from '@/lib/format';
 import { useTrips } from '@/lib/store';
 import type { Trip } from '@/lib/types';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { trips, hydrated } = useTrips();
   const insets = useSafeAreaInsets();
 
@@ -26,75 +26,112 @@ export default function HomeScreen() {
           data={trips}
           keyExtractor={(t) => t.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            gap: Spacing.two + 4,
-            paddingBottom: Spacing.three,
-            paddingTop: insets.top + Spacing.four,
-          }}
+          ItemSeparatorComponent={() => <Rule />}
+          contentContainerStyle={{ paddingTop: insets.top + Spacing.four }}
           ListHeaderComponent={
-            <View style={{ gap: Spacing.two, paddingBottom: Spacing.three }}>
-              <LinearGradient
-                colors={BrandGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>✈️ GoTogether</Text>
-              </LinearGradient>
-              <ThemedText type="title">Where should{'\n'}we all meet?</ThemedText>
-              <ThemedText themeColor="textSecondary">
-                Add your friends and their home cities — GoTogether ranks the cities where a
-                get-together is cheapest and fairest for everyone.
-              </ThemedText>
+            <View>
+              <View style={styles.masthead}>
+                <ThemedText type="label" style={{ letterSpacing: 2.4 }}>
+                  GoTogether
+                </ThemedText>
+                <ThemedText type="label" themeColor="textSecondary">
+                  {CITIES.length} cities
+                </ThemedText>
+              </View>
+              <Rule weight="strong" />
+
+              <View style={styles.intro}>
+                <ThemedText type="display">
+                  Find the fairest{'\n'}place to meet.
+                </ThemedText>
+                <ThemedText type="body" themeColor="textSecondary">
+                  Everyone lives somewhere different. GoTogether prices every candidate city per
+                  person — the flight, a shared hotel, food on the ground — then ranks where the
+                  trip costs least and lands most evenly.
+                </ThemedText>
+              </View>
+
+              <View style={styles.sectionHead}>
+                <ThemedText type="label" themeColor="textSecondary">
+                  {trips.length > 0 ? 'Your trips' : 'Start here'}
+                </ThemedText>
+              </View>
+              <Rule weight="strong" />
             </View>
           }
           ListEmptyComponent={
             hydrated ? (
-              <Card style={styles.emptyCard}>
-                <Text style={{ fontSize: 40 }}>🌍</Text>
-                <ThemedText type="heading">No trips yet. Plan your first one!</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
-                  Pick a month, add at least two friends, and see where the group should fly.
+              <View style={styles.empty}>
+                <ThemedText type="heading" themeColor="textSecondary">
+                  Nothing planned yet.
                 </ThemedText>
-              </Card>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Name the trip, pick a month, add the friends and where they fly from. Two people
+                  is enough to start.
+                </ThemedText>
+              </View>
             ) : null
+          }
+          ListFooterComponent={
+            <View style={styles.index}>
+              <ThemedText type="label" themeColor="textSecondary">
+                In the index
+              </ThemedText>
+              <Rule weight="strong" />
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                style={{ lineHeight: 23 }}>
+                {CITIES.map((c) => c.name).join('  ·  ')}
+              </ThemedText>
+            </View>
           }
           renderItem={({ item }) => (
             <TripRow trip={item} onPress={() => router.push(`/trip/${item.id}`)} />
           )}
         />
-        <View style={{ paddingBottom: Spacing.four, paddingTop: Spacing.two }}>
-          <Button title="＋ Plan a trip" onPress={() => router.push('/new-trip')} />
+
+        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.three }]}>
+          <Rule weight="strong" style={{ marginBottom: Spacing.three }} />
+          <Button title="Plan a trip" onPress={() => router.push('/new-trip')} />
+          <ThemedText
+            type="small"
+            themeColor="textSecondary"
+            style={{ textAlign: 'center', marginTop: Spacing.two }}>
+            Prices are estimates. Trips stay on this device.
+          </ThemedText>
         </View>
       </View>
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top, backgroundColor: theme.background }} />
     </ThemedView>
   );
 }
 
 function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
   const theme = useTheme();
-  const origins = [...new Set(trip.travelers.map((t) => t.originCode))];
+  const flags = [...new Set(trip.travelers.map((t) => t.originCode))].map(
+    (code) => getCity(code).flag,
+  );
 
   return (
-    <Card onPress={onPress} style={styles.row}>
-      <LinearGradient
-        colors={BrandGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.stripe}
-      />
-      <View style={{ flex: 1, gap: 3, paddingVertical: Spacing.three }}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tripRow,
+        pressed && { backgroundColor: theme.backgroundSelected },
+      ]}>
+      <View style={{ flex: 1, gap: Spacing.one + 1 }}>
         <ThemedText type="heading">{trip.name}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="label" themeColor="textSecondary">
           {monthName(trip.month)} · {trip.nights} nights · {trip.travelers.length} friends
         </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-          {origins.map(cityLabel).join('   ')}
-        </ThemedText>
+        <Text style={styles.flags}>{flags.join('  ')}</Text>
       </View>
-      <ThemedText type="heading" style={{ color: theme.tint, paddingRight: Spacing.three }}>
-        ›
+      <ThemedText type="heading" themeColor="textSecondary" style={{ marginTop: 2 }}>
+        →
       </ThemedText>
-    </Card>
+    </Pressable>
   );
 }
 
@@ -105,33 +142,44 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.four,
   },
-  heroBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  heroBadgeText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.3,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    gap: Spacing.two,
-    padding: Spacing.four,
-  },
-  row: {
+  masthead: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    overflow: 'hidden',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingBottom: Spacing.two,
   },
-  stripe: {
-    width: 5,
-    alignSelf: 'stretch',
+  intro: {
+    paddingTop: Spacing.four + 4,
+    paddingBottom: Spacing.five,
+    gap: Spacing.three,
+  },
+  sectionHead: {
+    paddingBottom: Spacing.two,
+  },
+  index: {
+    paddingTop: Spacing.five,
+    paddingBottom: Spacing.four,
+    gap: Spacing.two,
+  },
+  empty: {
+    paddingVertical: Spacing.four,
+    gap: Spacing.two,
+    maxWidth: 380,
+  },
+  tripRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.three,
+    paddingVertical: Spacing.three + 2,
+    paddingHorizontal: Spacing.one,
+  },
+  flags: {
+    fontSize: 15,
+    marginTop: 2,
+  },
+  footer: {
+    paddingTop: Spacing.two,
   },
 });

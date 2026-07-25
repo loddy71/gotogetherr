@@ -2,7 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 
-import { ResultCard } from '@/components/result-card';
+import { ResultRow } from '@/components/result-row';
+import { Rule } from '@/components/rule';
 import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +18,12 @@ import type { DestinationResult } from '@/lib/types';
 type RankMode = 'cheapest' | 'balanced' | 'fairest';
 
 const MODE_WEIGHT: Record<RankMode, number> = { cheapest: 0.1, balanced: 0.5, fairest: 0.9 };
+
+const MODE_BLURB: Record<RankMode, string> = {
+  cheapest: 'Ranked by the lowest total bill for the group, whoever ends up paying it.',
+  balanced: 'Ranked on total cost and an even split together — the usual compromise.',
+  fairest: 'Ranked by how evenly the cost falls, even if the total is a little higher.',
+};
 
 function modeForWeight(weight: number): RankMode {
   if (weight < 0.3) return 'cheapest';
@@ -55,6 +62,8 @@ export default function ResultsScreen() {
     );
   }
 
+  const mode = modeForWeight(trip.fairnessWeight);
+
   const share = async () => {
     const outcome = await shareTrip(trip);
     if (outcome === 'copied') {
@@ -69,8 +78,8 @@ export default function ResultsScreen() {
         options={{
           title: trip.name,
           headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: Spacing.three }}>
-              <HeaderAction label={copied ? 'Copied!' : 'Share'} onPress={share} />
+            <View style={{ flexDirection: 'row', gap: Spacing.three, paddingRight: Spacing.two }}>
+              <HeaderAction label={copied ? 'Copied' : 'Share'} onPress={share} />
               <HeaderAction label="Edit" onPress={() => router.push(`/new-trip?id=${trip.id}`)} />
             </View>
           ),
@@ -81,35 +90,42 @@ export default function ResultsScreen() {
           data={results ?? []}
           keyExtractor={(r) => r.cityCode}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ gap: Spacing.two + 4, paddingVertical: Spacing.three }}
+          ItemSeparatorComponent={() => <Rule />}
           ListHeaderComponent={
-            <View style={{ gap: Spacing.two + 4, paddingBottom: Spacing.two }}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {monthName(trip.month)} · {trip.nights} nights
-              </ThemedText>
-              <View style={styles.legend}>
-                {trip.travelers.map((t, i) => (
-                  <View key={t.id} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: travelerColor(i) }]} />
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {t.name}
-                    </ThemedText>
-                  </View>
-                ))}
+            <View>
+              <View style={styles.summary}>
+                <ThemedText type="label" themeColor="textSecondary">
+                  {monthName(trip.month)} · {trip.nights} nights · {trip.travelers.length} flying in
+                </ThemedText>
+                <View style={styles.legend}>
+                  {trip.travelers.map((t, i) => (
+                    <View key={t.id} style={styles.legendItem}>
+                      <View style={[styles.swatch, { backgroundColor: travelerColor(i) }]} />
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {t.name}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
               </View>
+
               <Segmented<RankMode>
                 options={[
                   { value: 'cheapest', label: 'Cheapest' },
                   { value: 'balanced', label: 'Balanced' },
                   { value: 'fairest', label: 'Fairest' },
                 ]}
-                value={modeForWeight(trip.fairnessWeight)}
-                onChange={(mode) => saveTrip({ ...trip, fairnessWeight: MODE_WEIGHT[mode] })}
+                value={mode}
+                onChange={(next) => saveTrip({ ...trip, fairnessWeight: MODE_WEIGHT[next] })}
               />
-              <ThemedText type="small" themeColor="textSecondary">
-                Estimates per person: return flight + shared mid-range hotel + daily costs. The bar
-                shows how the cost splits across the group — tap a city for details.
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                style={{ paddingVertical: Spacing.three }}>
+                {MODE_BLURB[mode]} Each figure is one person&apos;s share: return flight, a bed in a
+                shared room, and food on the ground.
               </ThemedText>
+              <Rule weight="strong" />
             </View>
           }
           ListEmptyComponent={
@@ -117,8 +133,9 @@ export default function ResultsScreen() {
               <ActivityIndicator />
             </View>
           }
+          ListFooterComponent={<View style={{ height: Spacing.six }} />}
           renderItem={({ item, index }) => (
-            <ResultCard
+            <ResultRow
               rank={index + 1}
               result={item}
               onPress={() => router.push(`/trip/${trip.id}/${item.cityCode}`)}
@@ -133,8 +150,8 @@ export default function ResultsScreen() {
 function HeaderAction({ label, onPress }: { label: string; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8}>
-      <ThemedText type="smallBold" style={{ color: theme.tint }}>
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10}>
+      <ThemedText type="label" style={{ color: theme.tint }}>
         {label}
       </ThemedText>
     </Pressable>
@@ -149,7 +166,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.four,
+  },
+  summary: {
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.four,
+    gap: Spacing.two + 2,
   },
   legend: {
     flexDirection: 'row',
@@ -162,9 +184,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  swatch: {
+    width: 9,
+    height: 9,
+    borderRadius: 1,
   },
 });

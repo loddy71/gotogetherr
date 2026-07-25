@@ -1,28 +1,25 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '@/components/card';
+import { CompositionBar } from '@/components/cost-bar';
+import { DotLeader, Rule } from '@/components/rule';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
-  cityGradient,
+  CostColors,
   DangerColor,
   MaxContentWidth,
-  Radius,
   Spacing,
   SuccessColor,
   travelerColor,
 } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { cityLabel, getCity } from '@/lib/data/cities';
+import { getCity } from '@/lib/data/cities';
 import { money, monthName } from '@/lib/format';
 import { rankDestinations } from '@/lib/scoring';
 import { useTrip } from '@/lib/store';
 import type { DestinationResult, TravelerCost } from '@/lib/types';
-
-const COST_COLORS = { flight: '#5B4DE0', hotel: '#0EA5E9', daily: '#F59E0B' } as const;
 
 export default function DestinationScreen() {
   const theme = useTheme();
@@ -55,31 +52,22 @@ export default function DestinationScreen() {
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: city.name }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={cityGradient(city.vibes, city.code)}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}>
-          <Text style={styles.heroFlag}>{city.flag}</Text>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.heroTitle}>{city.name}</Text>
-            <Text style={styles.heroCountry}>{city.country}</Text>
+        <View style={styles.hero}>
+          <ThemedText type="label" style={{ color: theme.tint }}>
+            {city.country}
+          </ThemedText>
+          <View style={styles.heroTitle}>
+            <Text style={styles.heroFlag}>{city.flag}</Text>
+            <ThemedText type="display" style={{ flexShrink: 1 }}>
+              {city.name}
+            </ThemedText>
           </View>
-        </LinearGradient>
-
-        <View style={{ gap: Spacing.two }}>
-          <ThemedText themeColor="textSecondary">{city.blurb}</ThemedText>
-          <View style={styles.badges}>
-            {city.vibes.map((vibe) => (
-              <View
-                key={vibe}
-                style={[styles.badge, { backgroundColor: theme.backgroundSelected }]}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {vibe}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
+          <ThemedText type="body" themeColor="textSecondary">
+            {city.blurb}
+          </ThemedText>
+          <ThemedText type="label" themeColor="textSecondary">
+            {city.vibes.join(' · ')}
+          </ThemedText>
         </View>
 
         {!result ? (
@@ -88,43 +76,44 @@ export default function DestinationScreen() {
           </View>
         ) : (
           <>
-            <Card style={styles.summary}>
-              <SummaryItem label="group total" value={money(result.totalCost)} />
-              <View style={[styles.divider, { backgroundColor: theme.border }]} />
-              <SummaryItem label="avg / person" value={money(result.avgCost)} />
-              <View style={[styles.divider, { backgroundColor: theme.border }]} />
-              <SummaryItem label="fairness" value={`${(result.fairness * 100).toFixed(0)}%`} />
-            </Card>
+            <Rule weight="dashed" />
+            <View style={styles.stats}>
+              <Stat label="group total" value={money(result.totalCost)} />
+              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+              <Stat label="each" value={money(result.avgCost)} />
+              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+              <Stat label="even split" value={`${Math.round(result.fairness * 100)}%`} />
+            </View>
+            <Rule weight="dashed" />
 
-            <View style={{ gap: Spacing.two + 2 }}>
+            <View style={styles.section}>
               <ThemedText type="label" themeColor="textSecondary">
-                PER-PERSON BREAKDOWN — {monthName(trip.month).toUpperCase()}, {trip.nights} NIGHTS
+                Who pays what
               </ThemedText>
-              <View style={styles.costLegend}>
-                <LegendItem color={COST_COLORS.flight} label="flight" />
-                <LegendItem color={COST_COLORS.hotel} label="hotel" />
-                <LegendItem color={COST_COLORS.daily} label="food & local" />
-              </View>
+              <Rule weight="strong" />
               {result.perTraveler.map((cost, i) => {
                 const traveler = trip.travelers.find((t) => t.id === cost.travelerId);
                 if (!traveler) return null;
                 return (
-                  <TravelerCard
-                    key={cost.travelerId}
-                    cost={cost}
-                    index={i}
-                    name={traveler.name}
-                    origin={traveler.originCode}
-                    budget={traveler.budget}
-                  />
+                  <View key={cost.travelerId}>
+                    <TravelerBlock
+                      cost={cost}
+                      index={i}
+                      name={traveler.name}
+                      originCode={traveler.originCode}
+                      budget={traveler.budget}
+                    />
+                    {i < result.perTraveler.length - 1 && <Rule />}
+                  </View>
                 );
               })}
+              <Rule weight="strong" />
             </View>
 
             <ThemedText type="small" themeColor="textSecondary">
-              All prices are deterministic estimates (mid-range hotel, double occupancy, typical
-              return fares for {monthName(trip.month)}). Live flight & hotel quotes are on the
-              roadmap — see the repo README.
+              Figures are estimates for {monthName(trip.month)}: the cheapest typical return fare,
+              a mid-range room shared two to a room, and everyday spending on the ground. Connect
+              the pricing proxy for live flight and hotel quotes.
             </ThemedText>
           </>
         )}
@@ -133,92 +122,92 @@ export default function DestinationScreen() {
   );
 }
 
-function TravelerCard({
+function TravelerBlock({
   cost,
   index,
   name,
-  origin,
+  originCode,
   budget,
 }: {
   cost: TravelerCost;
   index: number;
   name: string;
-  origin: string;
+  originCode: string;
   budget?: number;
 }) {
-  const total = cost.total || 1;
+  const origin = getCity(originCode);
 
   return (
-    <Card style={styles.travelerCard}>
-      <View style={styles.travelerHeader}>
-        <View style={[styles.travelerDot, { backgroundColor: travelerColor(index) }]} />
+    <View style={styles.travelerBlock}>
+      <View style={styles.travelerHead}>
+        <View style={[styles.swatch, { backgroundColor: travelerColor(index) }]} />
         <View style={{ flex: 1 }}>
-          <ThemedText style={{ fontWeight: '700' }}>{name}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            from {cityLabel(origin)}
-            {cost.isHome ? ' · already home 🏠' : ''}
+          <ThemedText type="heading">{name}</ThemedText>
+          <ThemedText type="label" themeColor="textSecondary">
+            {cost.isHome ? 'Lives here · no flight' : `Flying from ${origin.name}`}
           </ThemedText>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <ThemedText type="stat">{money(cost.total)}</ThemedText>
-          {cost.overBudget && budget ? (
-            <ThemedText type="small" style={{ color: DangerColor, fontWeight: '700' }}>
-              {money(cost.total - budget)} over budget
-            </ThemedText>
-          ) : budget ? (
-            <ThemedText type="small" style={{ color: SuccessColor }}>
-              {money(budget - cost.total)} under budget
+          <ThemedText type="priceLarge">{money(cost.total)}</ThemedText>
+          {budget ? (
+            <ThemedText
+              type="label"
+              style={{ color: cost.overBudget ? DangerColor : SuccessColor }}>
+              {cost.overBudget
+                ? `${money(cost.total - budget)} over`
+                : `${money(budget - cost.total)} spare`}
             </ThemedText>
           ) : null}
         </View>
       </View>
 
-      <View style={styles.costBar}>
-        {cost.flight > 0 && (
-          <View style={{ flex: cost.flight / total, backgroundColor: COST_COLORS.flight }} />
-        )}
-        <View style={{ flex: cost.hotelShare / total, backgroundColor: COST_COLORS.hotel }} />
-        <View style={{ flex: cost.daily / total, backgroundColor: COST_COLORS.daily }} />
-      </View>
+      <CompositionBar
+        segments={[
+          { value: cost.flight, color: CostColors.flight },
+          { value: cost.hotelShare, color: CostColors.hotel },
+          { value: cost.daily, color: CostColors.daily },
+        ]}
+      />
 
-      <View style={styles.breakdown}>
-        <BreakdownItem label="Return flight" value={money(cost.flight)} />
-        <BreakdownItem label="Hotel (shared)" value={money(cost.hotelShare)} />
-        <BreakdownItem label="Food & local" value={money(cost.daily)} />
+      <View style={{ gap: 3 }}>
+        <LineItem label="Return flight" value={money(cost.flight)} color={CostColors.flight} />
+        <LineItem
+          label="Bed in a shared room"
+          value={money(cost.hotelShare)}
+          color={CostColors.hotel}
+        />
+        <LineItem
+          label="Food & getting around"
+          value={money(cost.daily)}
+          color={CostColors.daily}
+        />
       </View>
-    </Card>
+    </View>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LineItem({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
+    <View style={styles.lineItem}>
+      <View style={[styles.tick, { backgroundColor: color }]} />
       <ThemedText type="small" themeColor="textSecondary">
         {label}
+      </ThemedText>
+      <DotLeader />
+      <ThemedText type="small" style={{ fontVariant: ['tabular-nums'] }}>
+        {value}
       </ThemedText>
     </View>
   );
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ alignItems: 'center', flex: 1, gap: 2 }}>
-      <ThemedText type="stat">{value}</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
+    <View style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+      <ThemedText type="price">{value}</ThemedText>
+      <ThemedText type="label" themeColor="textSecondary">
         {label}
       </ThemedText>
-    </View>
-  );
-}
-
-function BreakdownItem({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <ThemedText type="small" themeColor="textSecondary">
-        {label}
-      </ThemedText>
-      <ThemedText type="small">{value}</ThemedText>
     </View>
   );
 }
@@ -230,87 +219,57 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
-    padding: Spacing.three,
-    gap: Spacing.four,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
     paddingBottom: Spacing.six,
+    gap: Spacing.four,
   },
   hero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    borderRadius: Radius.lg,
-    padding: Spacing.four,
-  },
-  heroFlag: {
-    fontSize: 56,
+    gap: Spacing.two + 2,
   },
   heroTitle: {
-    color: '#fff',
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  heroCountry: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one + Spacing.half,
-  },
-  badge: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  summary: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.three,
+    gap: Spacing.two + 2,
   },
-  divider: {
+  heroFlag: {
+    fontSize: 34,
+  },
+  stats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
+  },
+  statDivider: {
     width: 1,
     alignSelf: 'stretch',
-    marginVertical: Spacing.one,
   },
-  costLegend: {
-    flexDirection: 'row',
-    gap: Spacing.three,
+  section: {
+    gap: Spacing.two,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  travelerCard: {
-    padding: Spacing.three,
+  travelerBlock: {
+    paddingVertical: Spacing.three,
     gap: Spacing.two + 2,
   },
-  travelerHeader: {
+  travelerHead: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.two + 2,
   },
-  travelerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  swatch: {
+    width: 9,
+    height: 9,
+    borderRadius: 1,
+    marginTop: 9,
   },
-  costBar: {
+  lineItem: {
     flexDirection: 'row',
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    gap: 2,
+    alignItems: 'center',
   },
-  breakdown: {
-    gap: Spacing.half,
+  tick: {
+    width: 6,
+    height: 6,
+    borderRadius: 1,
+    marginRight: Spacing.two,
   },
 });

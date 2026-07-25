@@ -1,20 +1,22 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { DisplayFont, Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
   type?:
     | 'default'
-    | 'title'
+    | 'body'
     | 'small'
     | 'smallBold'
-    | 'subtitle'
+    | 'display'
+    | 'title'
     | 'heading'
     | 'label'
-    | 'stat'
+    | 'price'
+    | 'priceLarge'
+    | 'numeral'
     | 'link'
-    | 'linkPrimary'
     | 'code';
   themeColor?: ThemeColor;
 };
@@ -27,15 +29,17 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
       style={[
         { color: theme[themeColor ?? 'text'] },
         type === 'default' && styles.default,
-        type === 'title' && styles.title,
+        type === 'body' && styles.body,
         type === 'small' && styles.small,
         type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
+        type === 'display' && styles.display,
+        type === 'title' && styles.title,
         type === 'heading' && styles.heading,
         type === 'label' && styles.label,
-        type === 'stat' && styles.stat,
+        type === 'price' && styles.price,
+        type === 'priceLarge' && styles.priceLarge,
+        type === 'numeral' && styles.numeral,
         type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
         type === 'code' && styles.code,
         style,
       ]}
@@ -45,68 +49,81 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 800,
-    lineHeight: 46,
-    fontFamily: Fonts.rounded,
+  /** Page headline, set tight and large. */
+  display: {
+    fontFamily: DisplayFont,
+    fontSize: 46,
+    lineHeight: 48,
     letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: 800,
-    fontFamily: Fonts.rounded,
-    letterSpacing: -0.3,
+  /** Screen title (city name, trip name). */
+  title: {
+    fontFamily: DisplayFont,
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -0.2,
   },
   heading: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: 700,
-    fontFamily: Fonts.rounded,
+    fontFamily: DisplayFont,
+    fontSize: 23,
+    lineHeight: 27,
   },
-  /** Uppercase section labels. */
+  /** Right-aligned figures in lists. */
+  price: {
+    fontFamily: DisplayFont,
+    fontSize: 24,
+    lineHeight: 27,
+    fontVariant: ['tabular-nums'],
+  },
+  priceLarge: {
+    fontFamily: DisplayFont,
+    fontSize: 30,
+    lineHeight: 33,
+    fontVariant: ['tabular-nums'],
+  },
+  /** Rank numerals set in the margin. */
+  numeral: {
+    fontFamily: DisplayFont,
+    fontSize: 19,
+    lineHeight: 22,
+    fontVariant: ['tabular-nums'],
+  },
+  /** Small caps section labels. */
   label: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: 700,
-    letterSpacing: 1.2,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
-  /** Big numbers in stat rows. */
-  stat: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 800,
-    fontFamily: Fonts.rounded,
+  body: {
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: '400',
+  },
+  default: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  small: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '400',
+  },
+  smallBold: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
   },
   link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#5B4DE0',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   code: {
     fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
     fontSize: 12,
   },
 });

@@ -6,8 +6,10 @@
  *   npm run e2e
  *
  * Drives the full happy path: create a trip with three friends (London,
- * New York, Tokyo), check rankings render, open the top destination,
- * verify the per-person breakdown and that the trip survives a reload.
+ * New York, Tokyo), check rankings render, open the top destination, verify
+ * the per-person breakdown, confirm the trip survives a reload, follow a
+ * share link into the join flow, and capture the same screens in dark mode.
+ * Screenshots for every step land in e2e/.artifacts/.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -54,34 +56,39 @@ try {
   page.on('pageerror', (e) => console.log('PAGEERROR:', e.message));
 
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
-  await page.waitForSelector('text=Where should we all meet?', { timeout: 15000 });
+  await page.waitForSelector('text=Find the fairest', { timeout: 15000 });
   console.log('home OK');
 
   await page.click('text=Plan a trip');
-  await page.waitForSelector('text=TRIP NAME', { timeout: 15000 });
+  await page.waitForSelector('text=Trip name', { timeout: 15000 });
   await page.fill('input[placeholder*="reunion"]', 'Summer reunion');
   console.log('form OK');
 
-  const addFriend = async (query, rowText) => {
-    await page.click('text=Flying from…');
-    await page.fill('input[placeholder*="Search cities"]', query);
-    await page.click(`text=${rowText}`);
+  const searchField = page.locator('input[placeholder*="Search cities"]');
+  const addFriend = async (query, code) => {
+    await page.click('text=Choose a city');
+    await searchField.fill(query);
+    await page.click(`[data-testid="city-option-${code}"]`);
+    // The picker must close once a city is chosen.
+    await searchField.waitFor({ state: 'hidden' });
   };
-  await addFriend('london', '🇬🇧 London');
-  await addFriend('new york', '🇺🇸 New York');
-  await page.click('text=＋ Add a friend');
-  await addFriend('tokyo', '🇯🇵 Tokyo');
+  await addFriend('london', 'LON');
+  await addFriend('new york', 'NYC');
+  await page.click('text=Add another friend');
+  await addFriend('tokyo', 'TYO');
   console.log('travelers OK');
 
+  await page.getByText('Add another friend').waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: shot('02-form') });
   await page.click('text=Find our city');
-  await page.waitForSelector('text=avg / person', { timeout: 20000 });
+  await page.waitForSelector('text=Best match', { timeout: 20000 });
   const first = await page.getByRole('button', { name: /^1 / }).innerText();
   console.log('results OK, top pick:', first.replace(/\n/g, ' | '));
   await page.screenshot({ path: shot('03-results') });
 
   await page.getByRole('button', { name: /^1 / }).click();
-  await page.waitForSelector('text=PER-PERSON BREAKDOWN', { timeout: 15000 });
+  await page.waitForSelector('text=Who pays what', { timeout: 15000 });
   console.log('detail OK');
   await page.screenshot({ path: shot('04-detail'), fullPage: true });
 
@@ -93,9 +100,10 @@ try {
   // Share → join flow: copy the invite link, open it in a fresh profile.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.click('text=Summer reunion');
-  await page.waitForSelector('text=avg / person', { timeout: 20000 });
-  await page.click('text=Share');
-  await page.waitForSelector('text=Copied!', { timeout: 5000 });
+  await page.waitForSelector('text=Best match', { timeout: 20000 });
+  const shareButton = page.getByRole('button', { name: 'Share' }).filter({ visible: true }).first();
+  await shareButton.click();
+  await page.getByText('Copied').first().waitFor({ timeout: 5000 });
   const link = await page.evaluate(() => navigator.clipboard.readText());
   if (!link.includes('/join?d=')) throw new Error(`unexpected share link: ${link}`);
 
@@ -104,11 +112,30 @@ try {
   await guest.goto(`http://localhost:${PORT}${joinUrl.pathname}${joinUrl.search}`, {
     waitUntil: 'networkidle',
   });
-  await guest.waitForSelector("text=invited to plan", { timeout: 15000 });
+  await guest.waitForSelector("text=invited", { timeout: 15000 });
   await guest.screenshot({ path: shot('05-join') });
   await guest.click('text=Add to my trips');
-  await guest.waitForSelector('text=avg / person', { timeout: 20000 });
+  await guest.waitForSelector('text=Best match', { timeout: 20000 });
   console.log('share/join OK');
+
+  // Dark mode: reuse the invite link so the same trip renders on dark stock.
+  const darkContext = await browser.newContext({
+    viewport: { width: 420, height: 900 },
+    colorScheme: 'dark',
+  });
+  const darkPage = await darkContext.newPage();
+  await darkPage.goto(`http://localhost:${PORT}${joinUrl.pathname}${joinUrl.search}`, {
+    waitUntil: 'networkidle',
+  });
+  await darkPage.waitForSelector('text=invited', { timeout: 15000 });
+  await darkPage.click('text=Add to my trips');
+  await darkPage.waitForSelector('text=Best match', { timeout: 20000 });
+  await darkPage.screenshot({ path: shot('06-dark-results') });
+  await darkPage.getByRole('button', { name: /^1 / }).click();
+  await darkPage.waitForSelector('text=Who pays what', { timeout: 15000 });
+  await darkPage.screenshot({ path: shot('07-dark-detail') });
+  await darkContext.close();
+  console.log('dark mode OK');
 
   console.log('SMOKE PASS');
 } finally {

@@ -65,6 +65,25 @@ Lessons baked into the provider interface:
 - API keys never ship in the client bundle → quotes go through a tiny proxy
   (Expo API routes or a Cloudflare Worker).
 
+## Design direction
+
+First pass looked like every other generated app: violet gradients, emoji as
+iconography, medal circles, pill badges, drop-shadowed cards. It read as
+templated, which is death for a product whose whole pitch is taste and
+judgement about travel.
+
+The current direction is a **printed travel guide**:
+
+- Warm paper stock and ink, not white-on-grey chrome. One accent (stamp red),
+  rationed to the top-ranked city, selected tabs and links.
+- Instrument Serif for display type against a plain system sans for body and
+  small-caps labels — the magazine pairing, not the SaaS one.
+- Hairline rules do the grouping; no shadows, near-square corners.
+- Data gets typographic treatment: tabular figures, rank numerals set in the
+  margin, dot leaders on the per-person bill, thin cost bars in a muted
+  travel-stamp palette that also identifies each traveller elsewhere.
+- No decorative emoji. Flags stay, because a flag is data.
+
 ## Why Expo (web + iOS from one codebase)
 
 - One React Native codebase → native iOS app (App Store via EAS Build), 

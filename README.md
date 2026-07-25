@@ -10,13 +10,26 @@ against **fairest for everyone**.
 One codebase, three targets: it runs as a web app and as a native **iOS**
 (and Android) app via [Expo](https://expo.dev).
 
-| Home | Ranked results | Per-person breakdown |
+| Home | Ranked results | Who pays what |
 |---|---|---|
 | ![Home](docs/screenshots/01-home.png) | ![Results](docs/screenshots/03-results.png) | ![Detail](docs/screenshots/04-detail.png) |
 
-| Trip invites | Dark mode |
-|---|---|
-| ![Join](docs/screenshots/05-join.png) | ![Dark](docs/screenshots/dark-results.png) |
+| Planning a trip | Trip invite | Dark mode |
+|---|---|---|
+| ![Form](docs/screenshots/02-form.png) | ![Join](docs/screenshots/05-join.png) | ![Dark](docs/screenshots/06-dark-results.png) |
+
+## Design
+
+The app is styled like a printed travel guide rather than a dashboard: warm
+paper stock, ink text, Instrument Serif for display type, and hairline rules
+instead of drop shadows. There are no gradients. Colour is rationed — a single
+stamp red marks the top-ranked city, the selected tab and links, and a muted
+travel-stamp palette identifies each traveller in the cost bars. Figures are
+set with tabular numerals so columns line up, and the per-person breakdown
+uses dot leaders like a receipt.
+
+Tokens live in `src/constants/theme.ts`; the shared primitives are `Rule`,
+`Panel`, `Button`, `ThemedText` (which owns the type scale) and the cost bars.
 
 ## How the ranking works
 

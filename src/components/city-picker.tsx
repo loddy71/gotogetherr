@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { Rule } from '@/components/rule';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { CITIES, cityLabel, type City } from '@/lib/data/cities';
+import { CITIES, type City } from '@/lib/data/cities';
 
 type CityPickerProps = {
   /** Currently selected city code, if any. */
@@ -15,12 +16,14 @@ type CityPickerProps = {
   onSelect: (code: string) => void;
 };
 
-/** Tappable field that opens a searchable full-screen city list. */
+/** Ruled field that opens a searchable index of cities. */
 export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: CityPickerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  const selected = value ? CITIES.find((c) => c.code === value) : undefined;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,48 +44,68 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
       <Pressable
         accessibilityRole="button"
         onPress={() => setOpen(true)}
-        style={[styles.field, { backgroundColor: theme.background, borderColor: theme.border }]}>
-        <ThemedText themeColor={value ? 'text' : 'textSecondary'}>
-          {value ? cityLabel(value) : placeholder}
-        </ThemedText>
+        style={({ pressed }) => [
+          styles.field,
+          { borderBottomColor: theme.border },
+          pressed && { opacity: 0.6 },
+        ]}>
+        {selected ? (
+          <View style={styles.selectedRow}>
+            <Text style={styles.flag}>{selected.flag}</Text>
+            <ThemedText type="default">{selected.name}</ThemedText>
+            <ThemedText type="label" themeColor="textSecondary">
+              {selected.country}
+            </ThemedText>
+          </View>
+        ) : (
+          <ThemedText type="default" themeColor="textSecondary">
+            {placeholder}
+          </ThemedText>
+        )}
       </Pressable>
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <View
           style={[
             styles.sheet,
-            { backgroundColor: theme.background, paddingTop: insets.top + Spacing.three },
+            { backgroundColor: theme.background, paddingTop: insets.top + Spacing.four },
           ]}>
-          <TextInput
-            autoFocus
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search cities or countries…"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.search,
-              { backgroundColor: theme.backgroundElement, color: theme.text },
-            ]}
-          />
+          <View style={{ paddingHorizontal: Spacing.four, gap: Spacing.two }}>
+            <ThemedText type="label" themeColor="textSecondary">
+              Home airport
+            </ThemedText>
+            <TextInput
+              autoFocus
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search cities or countries…"
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.search, { color: theme.text, borderBottomColor: theme.borderStrong }]}
+            />
+          </View>
           <FlatList
             data={filtered}
             keyExtractor={(c) => c.code}
             keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingHorizontal: Spacing.four }}
+            ItemSeparatorComponent={() => <Rule />}
             renderItem={({ item }) => (
               <Pressable
                 accessibilityRole="button"
+                testID={`city-option-${item.code}`}
                 onPress={() => pick(item)}
-                style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
-                <ThemedText>
-                  {item.flag} {item.name}
+                style={({ pressed }) => [styles.row, pressed && { opacity: 0.5 }]}>
+                <Text style={styles.flag}>{item.flag}</Text>
+                <ThemedText type="default" style={{ flex: 1 }}>
+                  {item.name}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
+                <ThemedText type="label" themeColor="textSecondary">
                   {item.country}
                 </ThemedText>
               </Pressable>
             )}
           />
-          <View style={{ paddingBottom: insets.bottom + Spacing.two }}>
+          <View style={{ paddingBottom: insets.bottom + Spacing.three, paddingHorizontal: Spacing.four }}>
             <Button title="Cancel" variant="secondary" onPress={() => setOpen(false)} />
           </View>
         </View>
@@ -93,26 +116,30 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
 
 const styles = StyleSheet.create({
   field: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + 2,
+    borderBottomWidth: 1,
+  },
+  selectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  flag: {
+    fontSize: 17,
   },
   sheet: {
     flex: 1,
-    paddingHorizontal: Spacing.three,
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
   search: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.three,
-    fontSize: 16,
+    paddingVertical: Spacing.two,
+    borderBottomWidth: 1,
+    fontSize: 20,
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.two + 2,
     paddingVertical: 14,
   },
 });
