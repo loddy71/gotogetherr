@@ -20,6 +20,8 @@ const PORT = 8899;
 const ARTIFACTS = new URL('./.artifacts/', import.meta.url).pathname;
 mkdirSync(ARTIFACTS, { recursive: true });
 const shot = (name) => `${ARTIFACTS}${name}.png`;
+// Entrance animations run ~0.5–0.9s; screenshots wait for them to settle.
+const settle = (page) => page.waitForTimeout(1200);
 
 // Static server with clean-URL rewrites (/join → join.html), matching how a
 // real static host serves the expo export.
@@ -79,22 +81,26 @@ try {
   console.log('travelers OK');
 
   await page.getByText('Add another friend').waitFor();
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('input[placeholder*="reunion"]').scrollIntoViewIfNeeded();
+  await settle(page);
   await page.screenshot({ path: shot('02-form') });
   await page.click('text=Find our city');
   await page.waitForSelector('text=Best match', { timeout: 20000 });
   const first = await page.getByRole('button', { name: /^1 / }).innerText();
   console.log('results OK, top pick:', first.replace(/\n/g, ' | '));
+  await settle(page);
   await page.screenshot({ path: shot('03-results') });
 
   await page.getByRole('button', { name: /^1 / }).click();
   await page.waitForSelector('text=Who pays what', { timeout: 15000 });
   console.log('detail OK');
+  await settle(page);
   await page.screenshot({ path: shot('04-detail'), fullPage: true });
 
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
   await page.waitForSelector('text=Summer reunion', { timeout: 15000 });
   console.log('persistence OK');
+  await settle(page);
   await page.screenshot({ path: shot('01-home') });
 
   // Share → join flow: copy the invite link, open it in a fresh profile.
@@ -113,6 +119,7 @@ try {
     waitUntil: 'networkidle',
   });
   await guest.waitForSelector("text=invited", { timeout: 15000 });
+  await settle(guest);
   await guest.screenshot({ path: shot('05-join') });
   await guest.click('text=Add to my trips');
   await guest.waitForSelector('text=Best match', { timeout: 20000 });
@@ -130,9 +137,11 @@ try {
   await darkPage.waitForSelector('text=invited', { timeout: 15000 });
   await darkPage.click('text=Add to my trips');
   await darkPage.waitForSelector('text=Best match', { timeout: 20000 });
+  await settle(darkPage);
   await darkPage.screenshot({ path: shot('06-dark-results') });
   await darkPage.getByRole('button', { name: /^1 / }).click();
   await darkPage.waitForSelector('text=Who pays what', { timeout: 15000 });
+  await settle(darkPage);
   await darkPage.screenshot({ path: shot('07-dark-detail') });
   await darkContext.close();
   console.log('dark mode OK');

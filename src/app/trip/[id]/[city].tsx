@@ -1,31 +1,61 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  LinearTransition,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CompositionBar } from '@/components/cost-bar';
-import { DotLeader, Rule } from '@/components/rule';
+import { AnimatedNumber } from '@/components/animated-number';
+import { Avatar } from '@/components/avatar';
+import { Card } from '@/components/card';
+import { Chip } from '@/components/chip';
+import { StackedBar } from '@/components/cost-bar';
+import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
+import { DotLeader } from '@/components/dot-leader';
+import { HEADER_BAR_HEIGHT, ScreenHeader } from '@/components/screen-header';
+import { SkeletonBlock } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { WorldMap } from '@/components/world-map';
 import {
   CostColors,
   DangerColor,
   MaxContentWidth,
+  Motion,
   Spacing,
   SuccessColor,
   travelerColor,
 } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getCity } from '@/lib/data/cities';
+import { getCity, hotelSeasonFactor, seasonOf, weatherFor } from '@/lib/data/cities';
 import { money, monthName } from '@/lib/format';
+import { flightHours } from '@/lib/pricing/mock-provider';
 import { rankDestinations } from '@/lib/scoring';
 import { useTrip } from '@/lib/store';
-import type { DestinationResult, TravelerCost } from '@/lib/types';
+import type { DestinationResult, Traveler, TravelerCost } from '@/lib/types';
+
+const percent = (n: number) => `${Math.round(n)}%`;
 
 export default function DestinationScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { id, city: cityCode } = useLocalSearchParams<{ id: string; city: string }>();
   const trip = useTrip(id);
   const [result, setResult] = useState<DestinationResult | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.set(e.contentOffset.y);
+  });
 
   useEffect(() => {
     if (!trip) return;
@@ -38,6 +68,12 @@ export default function DestinationScreen() {
     };
   }, [trip, cityCode]);
 
+  const origins = useMemo(
+    () =>
+      (trip?.travelers ?? []).map((t, i) => ({ key: t.id, code: t.originCode, color: travelerColor(i) })),
+    [trip?.travelers],
+  );
+
   if (!trip || !cityCode) {
     return (
       <ThemedView style={[styles.screen, styles.center]}>
@@ -47,12 +83,23 @@ export default function DestinationScreen() {
   }
 
   const city = getCity(cityCode);
+  const weather = weatherFor(city, trip.month);
+  const season = seasonOf(city, trip.month);
+  const seasonShift = Math.round((hotelSeasonFactor(city, trip.month) - 1) * 100);
 
   return (
     <ThemedView style={styles.screen}>
-      <Stack.Screen options={{ title: city.name }} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+      <ScreenHeader title={city.name} scrollY={scrollY} collapseAt={90} />
+
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + HEADER_BAR_HEIGHT + Spacing.two, paddingBottom: insets.bottom + Spacing.six },
+        ]}>
+        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={styles.hero}>
           <ThemedText type="label" style={{ color: theme.tint }}>
             {city.country}
           </ThemedText>
@@ -65,128 +112,170 @@ export default function DestinationScreen() {
           <ThemedText type="body" themeColor="textSecondary">
             {city.blurb}
           </ThemedText>
-          <ThemedText type="label" themeColor="textSecondary">
-            {city.vibes.join(' · ')}
-          </ThemedText>
-        </View>
+          <View style={styles.chips}>
+            <Chip
+              icon={weather.hazard && weather.hazard !== 'Extreme heat' ? 'rain' : 'sun'}
+              label={`${monthName(trip.month)} · ${weather.highC}°C${weather.hazard ? ` · ${weather.hazard}` : ''}`}
+              tone={weather.hazard ? 'warning' : 'neutral'}
+            />
+            <Chip
+              label={
+                season === 'shoulder'
+                  ? 'Shoulder season'
+                  : `${season === 'peak' ? 'Peak' : 'Low'} season · rooms ${seasonShift > 0 ? '+' : ''}${seasonShift}%`
+              }
+              tone={season === 'peak' ? 'accent' : 'neutral'}
+            />
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(80).duration(Motion.duration.slow)}>
+          <Card style={styles.mapCard}>
+            <WorldMap origins={origins} destination={city.code} />
+          </Card>
+        </Animated.View>
 
         {!result ? (
-          <View style={[styles.center, { paddingVertical: Spacing.six }]}>
-            <ActivityIndicator />
-          </View>
+          <Card style={[styles.stats, { padding: Spacing.four }]}>
+            <SkeletonBlock width="100%" height={40} />
+          </Card>
         ) : (
           <>
-            <Rule weight="dashed" />
-            <View style={styles.stats}>
-              <Stat label="group total" value={money(result.totalCost)} />
-              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-              <Stat label="each" value={money(result.avgCost)} />
-              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-              <Stat label="even split" value={`${Math.round(result.fairness * 100)}%`} />
-            </View>
-            <Rule weight="dashed" />
+            <Animated.View entering={FadeInDown.delay(140).duration(Motion.duration.slow)}>
+              <Card style={styles.stats}>
+                <Stat label="Group total" value={result.totalCost} format={money} />
+                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                <Stat label="Each" value={result.avgCost} format={money} />
+                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                <Stat label="Even split" value={result.fairness * 100} format={percent} />
+              </Card>
+            </Animated.View>
 
-            <View style={styles.section}>
-              <ThemedText type="label" themeColor="textSecondary">
+            <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)} style={{ gap: Spacing.three }}>
+              <ThemedText type="label" themeColor="textSecondary" style={{ paddingHorizontal: Spacing.one }}>
                 Who pays what
               </ThemedText>
-              <Rule weight="strong" />
               {result.perTraveler.map((cost, i) => {
                 const traveler = trip.travelers.find((t) => t.id === cost.travelerId);
                 if (!traveler) return null;
                 return (
-                  <View key={cost.travelerId}>
-                    <TravelerBlock
+                  <Animated.View key={cost.travelerId} layout={LinearTransition.springify().damping(Motion.glide.damping)}>
+                    <TravelerCard
+                      traveler={traveler}
                       cost={cost}
                       index={i}
-                      name={traveler.name}
-                      originCode={traveler.originCode}
-                      budget={traveler.budget}
+                      destinationCode={city.code}
+                      open={expanded === cost.travelerId}
+                      onToggle={() => setExpanded((cur) => (cur === cost.travelerId ? null : cost.travelerId))}
                     />
-                    {i < result.perTraveler.length - 1 && <Rule />}
-                  </View>
+                  </Animated.View>
                 );
               })}
-              <Rule weight="strong" />
-            </View>
+            </Animated.View>
 
-            <ThemedText type="small" themeColor="textSecondary">
-              Figures are estimates for {monthName(trip.month)}: the cheapest typical return fare,
-              a mid-range room shared two to a room, and everyday spending on the ground. Connect
-              the pricing proxy for live flight and hotel quotes.
+            <ThemedText type="small" themeColor="textSecondary" style={styles.footnote}>
+              Estimates for {monthName(trip.month)}, calibrated to September 2026 fares and hotel
+              rates: a typical return economy fare, a mid-range double room shared two to a room
+              {city.feeNote ? ` (${city.feeNote.toLowerCase()})` : ''}, and everyday spending. Live
+              prices will differ; check before booking.
             </ThemedText>
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </ThemedView>
   );
 }
 
-function TravelerBlock({
-  cost,
-  index,
-  name,
-  originCode,
-  budget,
-}: {
-  cost: TravelerCost;
-  index: number;
-  name: string;
-  originCode: string;
-  budget?: number;
-}) {
-  const origin = getCity(originCode);
-
+function Stat({ label, value, format }: { label: string; value: number; format: (n: number) => string }) {
   return (
-    <View style={styles.travelerBlock}>
-      <View style={styles.travelerHead}>
-        <View style={[styles.swatch, { backgroundColor: travelerColor(index) }]} />
-        <View style={{ flex: 1 }}>
-          <ThemedText type="heading">{name}</ThemedText>
-          <ThemedText type="label" themeColor="textSecondary">
-            {cost.isHome ? 'Lives here · no flight' : `Flying from ${origin.name}`}
-          </ThemedText>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <ThemedText type="priceLarge">{money(cost.total)}</ThemedText>
-          {budget ? (
-            <ThemedText
-              type="label"
-              style={{ color: cost.overBudget ? DangerColor : SuccessColor }}>
-              {cost.overBudget
-                ? `${money(cost.total - budget)} over`
-                : `${money(budget - cost.total)} spare`}
-            </ThemedText>
-          ) : null}
-        </View>
-      </View>
-
-      <CompositionBar
-        segments={[
-          { value: cost.flight, color: CostColors.flight },
-          { value: cost.hotelShare, color: CostColors.hotel },
-          { value: cost.daily, color: CostColors.daily },
-        ]}
-      />
-
-      <View style={{ gap: 3 }}>
-        <LineItem label="Return flight" value={money(cost.flight)} color={CostColors.flight} />
-        <LineItem
-          label="Bed in a shared room"
-          value={money(cost.hotelShare)}
-          color={CostColors.hotel}
-        />
-        <LineItem
-          label="Food & getting around"
-          value={money(cost.daily)}
-          color={CostColors.daily}
-        />
-      </View>
+    <View style={styles.stat}>
+      <AnimatedNumber type="price" value={value} format={format} fromZero />
+      <ThemedText type="caption" themeColor="textSecondary">
+        {label}
+      </ThemedText>
     </View>
   );
 }
 
-function LineItem({ label, value, color }: { label: string; value: string; color: string }) {
+function TravelerCard({
+  traveler,
+  cost,
+  index,
+  destinationCode,
+  open,
+  onToggle,
+}: {
+  traveler: Traveler;
+  cost: TravelerCost;
+  index: number;
+  destinationCode: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const theme = useTheme();
+  const origin = getCity(traveler.originCode);
+  const hours = flightHours(traveler.originCode, destinationCode);
+
+  const rotation = useSharedValue(open ? 1 : 0);
+  useEffect(() => {
+    rotation.set(withSpring(open ? 1 : 0, Motion.snappy));
+  }, [open, rotation]);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 180}deg` }],
+  }));
+
+  return (
+    <PressableScale
+      onPress={onToggle}
+      scaleTo={0.985}
+      feedback="selection"
+      accessibilityState={{ expanded: open }}>
+      <Card style={styles.travelerCard}>
+        <View style={styles.travelerHead}>
+          <Avatar name={traveler.name} index={index} size={36} />
+          <View style={{ flex: 1, gap: 1 }}>
+            <ThemedText type="defaultBold">{traveler.name}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {cost.isHome ? 'Lives here, no flight' : `From ${origin.name} · ≈ ${formatHours(hours)} flying`}
+            </ThemedText>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <AnimatedNumber type="price" value={cost.total} format={money} fromZero />
+            {traveler.budget ? (
+              <ThemedText type="caption" style={{ color: cost.overBudget ? DangerColor : SuccessColor }}>
+                {cost.overBudget
+                  ? `${money(cost.total - traveler.budget)} over budget`
+                  : `${money(traveler.budget - cost.total)} under budget`}
+              </ThemedText>
+            ) : null}
+          </View>
+          <Animated.View style={chevronStyle}>
+            <Icon name="chevron-down" size={18} color={theme.textSecondary} />
+          </Animated.View>
+        </View>
+
+        <StackedBar
+          delay={200 + index * Motion.stagger}
+          segments={[
+            { key: 'flight', value: cost.flight, color: CostColors.flight },
+            { key: 'hotel', value: cost.hotelShare, color: CostColors.hotel },
+            { key: 'daily', value: cost.daily, color: CostColors.daily },
+          ]}
+        />
+
+        {open && (
+          <Animated.View entering={FadeIn.duration(Motion.duration.base)} style={{ gap: 6 }}>
+            <LineItem label="Return flight" value={cost.flight} color={CostColors.flight} />
+            <LineItem label="Share of the room" value={cost.hotelShare} color={CostColors.hotel} />
+            <LineItem label="Food & getting around" value={cost.daily} color={CostColors.daily} />
+          </Animated.View>
+        )}
+      </Card>
+    </PressableScale>
+  );
+}
+
+function LineItem({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <View style={styles.lineItem}>
       <View style={[styles.tick, { backgroundColor: color }]} />
@@ -194,22 +283,18 @@ function LineItem({ label, value, color }: { label: string; value: string; color
         {label}
       </ThemedText>
       <DotLeader />
-      <ThemedText type="small" style={{ fontVariant: ['tabular-nums'] }}>
-        {value}
+      <ThemedText type="smallBold" style={{ fontVariant: ['tabular-nums'] }}>
+        {money(value)}
       </ThemedText>
     </View>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 3 }}>
-      <ThemedText type="price">{value}</ThemedText>
-      <ThemedText type="label" themeColor="textSecondary">
-        {label}
-      </ThemedText>
-    </View>
-  );
+function formatHours(h: number): string {
+  const whole = Math.floor(h);
+  const minutes = Math.round((h - whole) * 60 / 15) * 15;
+  if (minutes === 60) return `${whole + 1} h`;
+  return minutes ? `${whole} h ${minutes} min` : `${whole} h`;
 }
 
 const styles = StyleSheet.create({
@@ -219,57 +304,24 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.six,
+    paddingHorizontal: Spacing.three + 4,
     gap: Spacing.four,
   },
-  hero: {
-    gap: Spacing.two + 2,
-  },
-  heroTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 2,
-  },
-  heroFlag: {
-    fontSize: 34,
-  },
+  hero: { gap: Spacing.two + 2 },
+  heroTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2 },
+  heroFlag: { fontSize: 34 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  mapCard: { padding: Spacing.two },
   stats: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.three + 2,
   },
-  statDivider: {
-    width: 1,
-    alignSelf: 'stretch',
-  },
-  section: {
-    gap: Spacing.two,
-  },
-  travelerBlock: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.two + 2,
-  },
-  travelerHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two + 2,
-  },
-  swatch: {
-    width: 9,
-    height: 9,
-    borderRadius: 1,
-    marginTop: 9,
-  },
-  lineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tick: {
-    width: 6,
-    height: 6,
-    borderRadius: 1,
-    marginRight: Spacing.two,
-  },
+  stat: { flex: 1, alignItems: 'center', gap: 2 },
+  divider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch' },
+  travelerCard: { padding: Spacing.three, gap: Spacing.three },
+  travelerHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
+  lineItem: { flexDirection: 'row', alignItems: 'center' },
+  tick: { width: 7, height: 7, borderRadius: 2, marginRight: Spacing.two },
+  footnote: { paddingHorizontal: Spacing.one },
 });

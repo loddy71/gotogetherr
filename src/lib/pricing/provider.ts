@@ -1,7 +1,7 @@
 /**
  * Pricing abstraction. The app only ever talks to this interface, so the
- * deterministic estimator can be swapped for live APIs (Amadeus, Kiwi Tequila,
- * Booking.com) without touching any screen or the ranking engine.
+ * deterministic estimator can be swapped for live APIs (see
+ * docs/DATA_SOURCES.md) without touching any screen or the ranking engine.
  */
 
 export type FlightQuery = {
@@ -22,7 +22,7 @@ export type StayQuery = {
 export type FlightQuote = {
   /** Return fare per person, USD. */
   price: number;
-  /** Where the number came from, e.g. 'estimate' | 'amadeus'. */
+  /** Where the number came from, e.g. 'estimate' | 'live'. */
   source: string;
 };
 

@@ -1,21 +1,28 @@
-import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { Icon, type IconName } from '@/components/icon';
+import { PressableScale, type PressableScaleProps } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
 import { DangerColor, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type ButtonProps = Omit<PressableProps, 'style'> & {
+type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
   title: string;
-  /** primary: ink block · secondary: ruled outline · destructive: red outline · quiet: bare text */
-  variant?: 'primary' | 'secondary' | 'destructive' | 'quiet';
-  style?: ViewStyle;
+  /** primary: ink pill · secondary: outlined pill · destructive: red outline · ghost: bare */
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
+  icon?: IconName;
+  size?: 'large' | 'small';
+  style?: StyleProp<ViewStyle>;
 };
 
-/**
- * Letterspaced small-caps label on an ink block (primary) or a ruled outline.
- * Deliberately near-square corners — this is print, not a control panel.
- */
-export function Button({ title, variant = 'primary', style, disabled, ...rest }: ButtonProps) {
+export function Button({
+  title,
+  variant = 'primary',
+  icon,
+  size = 'large',
+  style,
+  ...rest
+}: ButtonProps) {
   const theme = useTheme();
 
   const background = variant === 'primary' ? theme.text : 'transparent';
@@ -24,7 +31,7 @@ export function Button({ title, variant = 'primary', style, disabled, ...rest }:
       ? theme.text
       : variant === 'destructive'
         ? DangerColor
-        : variant === 'quiet'
+        : variant === 'ghost'
           ? 'transparent'
           : theme.borderStrong;
   const color =
@@ -32,40 +39,44 @@ export function Button({ title, variant = 'primary', style, disabled, ...rest }:
       ? theme.background
       : variant === 'destructive'
         ? DangerColor
-        : variant === 'quiet'
-          ? theme.textSecondary
-          : theme.text;
+        : theme.text;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      style={({ pressed }) => [
+    <PressableScale
+      accessibilityLabel={title}
+      style={[
         styles.base,
+        size === 'small' && styles.small,
         { backgroundColor: background, borderColor },
-        variant === 'quiet' && styles.quiet,
-        { opacity: disabled ? 0.35 : pressed ? 0.6 : 1 },
         style,
       ]}
       {...rest}>
-      <ThemedText type="label" style={{ color, letterSpacing: 1.6 }}>
-        {title}
-      </ThemedText>
-    </Pressable>
+      <View style={styles.row}>
+        {icon && <Icon name={icon} size={size === 'small' ? 16 : 18} color={color} strokeWidth={2} />}
+        <ThemedText type={size === 'small' ? 'smallBold' : 'defaultBold'} style={{ color }}>
+          {title}
+        </ThemedText>
+      </View>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
     paddingHorizontal: Spacing.four,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.pill,
     borderWidth: 1,
   },
-  quiet: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: 0,
+  small: {
+    minHeight: 38,
+    paddingHorizontal: Spacing.three,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
 });

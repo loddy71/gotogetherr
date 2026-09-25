@@ -53,7 +53,8 @@ when you pay $200?".
 | Stage | Source | Status |
 |---|---|---|
 | 1 | Deterministic estimator (distance-banded fares, hub factor, seasonality, city hotel/food indices) | ✅ shipped — free, offline, stable rankings |
-| 2 | Live flight + hotel quotes via Amadeus Self-Service behind `server/pricing-proxy.mjs`, cached per route+month, per-route fallback to estimates | ✅ shipped (opt-in via `EXPO_PUBLIC_PRICE_PROXY_URL`) |
+| 1b | Estimator calibrated to 2026 benchmark fares and hotel rates; per-destination seasons, climate and hazards | ✅ shipped. `npm run check:data` guards it in CI |
+| 2 | Live quotes behind a server-side proxy with per-route fallback. Amadeus Self-Service was used first but **shut down 17 July 2026**; next up is Travelpayouts month prices for ranking, Duffel to verify the shortlist, LiteAPI for hotels | client + fallback shipped; upstream to replace (see `docs/DATA_SOURCES.md`) |
 | 3 | "Live" vs "estimate" labels in the UI, booking deep links (affiliate) | planned |
 
 Lessons baked into the provider interface:
@@ -66,6 +67,15 @@ Lessons baked into the provider interface:
   (Expo API routes or a Cloudflare Worker).
 
 ## Design direction
+
+**v3 (current): paper and ink, softened, with motion.** Feedback on v2 was
+to make it smoother. The identity stays (paper, ink, serif, one accent), but
+surfaces are rounded cards, and everything moves on one shared set of
+springs: results glide when re-ranked, the map re-routes, figures roll,
+sheets drag. A route map shows where everyone flies from, which does more to
+explain "meet in the middle" than any copy.
+
+**v2: printed travel guide.**
 
 First pass looked like every other generated app: violet gradients, emoji as
 iconography, medal circles, pill badges, drop-shadowed cards. It read as

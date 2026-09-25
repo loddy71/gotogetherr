@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -9,22 +9,34 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnimatedNumber } from '@/components/animated-number';
+import { Avatar } from '@/components/avatar';
+import { BOTTOM_BAR_CLEARANCE, BottomBar } from '@/components/bottom-bar';
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { CityPicker } from '@/components/city-picker';
-import { Rule } from '@/components/rule';
+import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
+import { HeaderIconButton } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { DisplayFont, MaxContentWidth, Spacing, travelerColor } from '@/constants/theme';
+import { DisplayFont, MaxContentWidth, Motion, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic } from '@/lib/haptics';
 import { MONTHS, newId } from '@/lib/format';
 import { useTrip, useTrips } from '@/lib/store';
 import type { Traveler, Trip } from '@/lib/types';
+
+const layoutSpring = LinearTransition.springify().damping(Motion.glide.damping);
 
 /** Create a new trip, or edit an existing one when `?id=` is passed. */
 export default function TripFormScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const existing = useTrip(id);
   const { saveTrip, deleteTrip } = useTrips();
@@ -43,19 +55,19 @@ export default function TripFormScreen() {
   const validTravelers = travelers.filter((t) => t.originCode);
   const canSave = name.trim().length > 0 && validTravelers.length >= 2;
 
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
   const save = () => {
     const trip: Trip = {
       id: existing?.id ?? newId(),
       name: name.trim(),
       month,
       nights,
-      travelers: validTravelers.map((t, i) => ({
-        ...t,
-        name: t.name.trim() || `Friend ${i + 1}`,
-      })),
+      travelers: validTravelers.map((t, i) => ({ ...t, name: t.name.trim() || `Friend ${i + 1}` })),
       fairnessWeight: existing?.fairnessWeight ?? 0.5,
       createdAt: existing?.createdAt ?? Date.now(),
     };
+    haptic('success');
     saveTrip(trip);
     if (existing) router.back();
     else router.replace(`/trip/${trip.id}`);
@@ -69,190 +81,200 @@ export default function TripFormScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <Stack.Screen options={{ title: existing ? 'Edit trip' : 'Plan a trip' }} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={[styles.topBar, { paddingTop: Platform.OS === 'ios' ? Spacing.three : insets.top + Spacing.two }]}>
+        <ThemedText type="heading">{existing ? 'Edit trip' : 'Plan a trip'}</ThemedText>
+        <HeaderIconButton icon="close" label="Close" onPress={close} />
+      </View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE + Spacing.four }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          <Field label="Trip name">
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="The lads' reunion"
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.border }]}
-            />
-          </Field>
+          <Animated.View entering={FadeInDown.duration(Motion.duration.slow)}>
+            <Section label="Trip name">
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="The lads' reunion"
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.titleInput, { color: theme.text }]}
+              />
+            </Section>
+          </Animated.View>
 
-          <Field label="When">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Animated.View entering={FadeInDown.delay(60).duration(Motion.duration.slow)}>
+            <Section label="When">
               <View style={styles.months}>
-                {MONTHS.map((label, i) => {
-                  const selected = month === i + 1;
-                  return (
-                    <Pressable
-                      key={label}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      onPress={() => setMonth(i + 1)}
-                      style={[
-                        styles.month,
-                        { borderBottomColor: selected ? theme.tint : 'transparent' },
-                      ]}>
-                      <ThemedText
-                        type="label"
-                        style={{ color: selected ? theme.text : theme.textSecondary }}>
-                        {label.slice(0, 3)}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
+                {MONTHS.map((label, i) => (
+                  <MonthCell
+                    key={label}
+                    label={label.slice(0, 3)}
+                    selected={month === i + 1}
+                    onPress={() => setMonth(i + 1)}
+                  />
+                ))}
               </View>
-            </ScrollView>
-            <Rule />
-            <View style={styles.nightsRow}>
-              <ThemedText type="label" themeColor="textSecondary">
-                Nights
-              </ThemedText>
-              <View style={styles.stepper}>
-                <Stepper label="−" onPress={() => setNights((n) => Math.max(1, n - 1))} />
-                <ThemedText type="price" style={styles.nightsValue}>
-                  {nights}
-                </ThemedText>
-                <Stepper label="+" onPress={() => setNights((n) => Math.min(21, n + 1))} />
-              </View>
-            </View>
-          </Field>
-
-          <Field label="Who's coming">
-            {travelers.map((traveler, i) => (
-              <View key={traveler.id} style={styles.traveler}>
-                <View style={styles.travelerHead}>
-                  <ThemedText type="numeral" style={{ color: travelerColor(i) }}>
-                    {String(i + 1).padStart(2, '0')}
+              <View style={[styles.nightsRow, { borderTopColor: theme.border }]}>
+                <View>
+                  <ThemedText type="defaultBold">Nights</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Hotel and daily costs scale with this
                   </ThemedText>
-                  <TextInput
-                    value={traveler.name}
-                    onChangeText={(v) => updateTraveler(traveler.id, { name: v })}
-                    placeholder={`Friend ${i + 1}`}
-                    placeholderTextColor={theme.textSecondary}
-                    style={[styles.nameInput, { color: theme.text }]}
-                  />
-                  {travelers.length > 2 && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove ${traveler.name || `friend ${i + 1}`}`}
-                      hitSlop={10}
-                      onPress={() =>
-                        setTravelers((prev) => prev.filter((t) => t.id !== traveler.id))
-                      }>
-                      <ThemedText type="label" themeColor="textSecondary">
-                        Remove
-                      </ThemedText>
-                    </Pressable>
-                  )}
                 </View>
-
-                <View style={{ gap: Spacing.one }}>
-                  {i === 0 && (
-                    <ThemedText type="label" themeColor="textSecondary">
-                      Flying from
-                    </ThemedText>
-                  )}
-                  <CityPicker
-                    value={traveler.originCode || undefined}
-                    placeholder="Choose a city"
-                    onSelect={(code) => updateTraveler(traveler.id, { originCode: code })}
-                  />
-                </View>
-
-                <View style={{ gap: Spacing.one }}>
-                  {i === 0 && (
-                    <ThemedText type="label" themeColor="textSecondary">
-                      Budget, if there is one
-                    </ThemedText>
-                  )}
-                  <View style={[styles.budgetRow, { borderBottomColor: theme.border }]}>
-                    <ThemedText type="default" themeColor="textSecondary">
-                      $
-                    </ThemedText>
-                    <TextInput
-                      value={traveler.budget ? String(traveler.budget) : ''}
-                      onChangeText={(v) => {
-                        const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                        updateTraveler(traveler.id, {
-                          budget: Number.isFinite(n) ? n : undefined,
-                        });
-                      }}
-                      keyboardType="number-pad"
-                      placeholder="No limit"
-                      placeholderTextColor={theme.textSecondary}
-                      style={[styles.budgetInput, { color: theme.text }]}
-                    />
-                  </View>
+                <View style={styles.stepper}>
+                  <Stepper icon="minus" onPress={() => setNights((n) => Math.max(1, n - 1))} />
+                  <AnimatedNumber type="price" value={nights} format={(n) => String(Math.round(n))} style={styles.nightsValue} />
+                  <Stepper icon="plus" onPress={() => setNights((n) => Math.min(21, n + 1))} />
                 </View>
               </View>
-            ))}
-            <Button
-              title="Add another friend"
-              variant="secondary"
-              onPress={() => setTravelers((prev) => [...prev, emptyTraveler()])}
-            />
-          </Field>
+            </Section>
+          </Animated.View>
 
-          <View style={{ gap: Spacing.two }}>
-            <Button
-              title={existing ? 'Save changes' : 'Find our city'}
-              disabled={!canSave}
-              onPress={save}
-            />
-            {!canSave && (
-              <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
-                Name the trip and give at least two friends a home city.
-              </ThemedText>
-            )}
-            {existing && <Button title="Delete this trip" variant="destructive" onPress={remove} />}
-          </View>
+          <Animated.View entering={FadeInDown.delay(120).duration(Motion.duration.slow)} layout={layoutSpring}>
+            <ThemedText type="label" themeColor="textSecondary" style={styles.sectionLabel}>
+              Who&apos;s coming
+            </ThemedText>
+            <View style={{ gap: Spacing.three }}>
+              {travelers.map((traveler, i) => (
+                <Animated.View
+                  key={traveler.id}
+                  entering={FadeInDown.springify().damping(Motion.glide.damping)}
+                  exiting={FadeOut.duration(Motion.duration.fast)}
+                  layout={layoutSpring}>
+                  <Card style={styles.traveler}>
+                    <View style={styles.travelerHead}>
+                      <Avatar name={traveler.name || `Friend ${i + 1}`} index={i} size={34} />
+                      <TextInput
+                        value={traveler.name}
+                        onChangeText={(v) => updateTraveler(traveler.id, { name: v })}
+                        placeholder={`Friend ${i + 1}`}
+                        placeholderTextColor={theme.textSecondary}
+                        style={[styles.nameInput, { color: theme.text }]}
+                      />
+                      {travelers.length > 2 && (
+                        <PressableScale
+                          accessibilityLabel={`Remove ${traveler.name || `friend ${i + 1}`}`}
+                          hitSlop={10}
+                          onPress={() => setTravelers((prev) => prev.filter((t) => t.id !== traveler.id))}
+                          style={[styles.remove, { backgroundColor: theme.backgroundSelected }]}>
+                          <Icon name="close" size={14} color={theme.textSecondary} strokeWidth={2.2} />
+                        </PressableScale>
+                      )}
+                    </View>
+                    <CityPicker
+                      value={traveler.originCode || undefined}
+                      placeholder="Choose a city"
+                      onSelect={(code) => updateTraveler(traveler.id, { originCode: code })}
+                    />
+                    <View style={[styles.budgetRow, { backgroundColor: theme.backgroundSelected }]}>
+                      <ThemedText type="default" themeColor="textSecondary">
+                        $
+                      </ThemedText>
+                      <TextInput
+                        value={traveler.budget ? String(traveler.budget) : ''}
+                        onChangeText={(v) => {
+                          const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                          updateTraveler(traveler.id, { budget: Number.isFinite(n) ? n : undefined });
+                        }}
+                        keyboardType="number-pad"
+                        placeholder="Budget for the whole trip (optional)"
+                        placeholderTextColor={theme.textSecondary}
+                        style={[styles.budgetInput, { color: theme.text }]}
+                      />
+                    </View>
+                  </Card>
+                </Animated.View>
+              ))}
+              <Animated.View layout={layoutSpring}>
+                <Button
+                  title="Add another friend"
+                  icon="plus"
+                  variant="secondary"
+                  onPress={() => setTravelers((prev) => [...prev, emptyTraveler()])}
+                />
+              </Animated.View>
+            </View>
+          </Animated.View>
+
+          {existing && (
+            <Animated.View layout={layoutSpring}>
+              <Button title="Delete this trip" variant="destructive" onPress={remove} />
+            </Animated.View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BottomBar>
+        <Button title={existing ? 'Save changes' : 'Find our city'} disabled={!canSave} onPress={save} />
+      </BottomBar>
+      {!canSave && (
+        <ThemedText
+          type="caption"
+          themeColor="textSecondary"
+          style={[styles.hint, { bottom: Math.max(insets.bottom, Spacing.three) + 74 }]}>
+          Name the trip and give at least two friends a home city
+        </ThemedText>
+      )}
     </ThemedView>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <View style={{ gap: Spacing.three }}>
-      <View style={{ gap: Spacing.two }}>
-        <ThemedText type="label" themeColor="textSecondary">
-          {label}
-        </ThemedText>
-        <Rule weight="strong" />
-      </View>
-      {children}
+    <View style={{ gap: Spacing.two + 2 }}>
+      <ThemedText type="label" themeColor="textSecondary" style={styles.sectionLabel}>
+        {label}
+      </ThemedText>
+      <Card style={styles.section}>{children}</Card>
     </View>
   );
 }
 
-function Stepper({ label, onPress }: { label: string; onPress: () => void }) {
+function MonthCell({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label === '+' ? 'Add a night' : 'Remove a night'}
+      accessibilityState={{ selected }}
+      onPress={() => {
+        haptic('selection');
+        onPress();
+      }}
+      style={styles.monthCell}>
+      <Animated.View
+        style={[
+          styles.monthPill,
+          {
+            backgroundColor: selected ? theme.text : 'transparent',
+            transitionProperty: 'backgroundColor',
+            transitionDuration: Motion.duration.base,
+          },
+        ]}>
+        <ThemedText type="smallBold" style={{ color: selected ? theme.background : theme.textSecondary }}>
+          {label}
+        </ThemedText>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function Stepper({ icon, onPress }: { icon: 'plus' | 'minus'; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <PressableScale
+      accessibilityLabel={icon === 'plus' ? 'Add a night' : 'Remove a night'}
+      feedback="selection"
+      scaleTo={0.9}
       onPress={onPress}
       hitSlop={8}
-      style={({ pressed }) => [
-        styles.stepperButton,
-        { borderColor: theme.borderStrong },
-        pressed && { opacity: 0.5 },
-      ]}>
-      <ThemedText type="default" style={{ lineHeight: 20 }}>
-        {label}
-      </ThemedText>
-    </Pressable>
+      style={[styles.stepperButton, { backgroundColor: theme.backgroundSelected }]}>
+      {icon === 'plus' ? (
+        <Icon name="plus" size={16} color={theme.text} strokeWidth={2.2} />
+      ) : (
+        <View style={[styles.minus, { backgroundColor: theme.text }]} />
+      )}
+    </PressableScale>
   );
 }
 
@@ -266,75 +288,70 @@ function nextMonth(): number {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  topBar: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three + 4,
+    paddingBottom: Spacing.two,
+  },
   content: {
     width: '100%',
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.six,
-    gap: Spacing.five,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.two,
+    gap: Spacing.four,
   },
-  titleInput: {
-    fontFamily: DisplayFont,
-    fontSize: 27,
-    paddingVertical: Spacing.two,
-    borderBottomWidth: 1,
-  },
-  months: {
-    flexDirection: 'row',
-  },
-  month: {
-    paddingVertical: Spacing.two,
-    paddingRight: Spacing.three,
-    borderBottomWidth: 2,
-    marginBottom: -1,
+  sectionLabel: { paddingHorizontal: Spacing.one, marginBottom: Spacing.two + 2 },
+  section: { padding: Spacing.three, gap: Spacing.three },
+  titleInput: { fontFamily: DisplayFont, fontSize: 28, paddingVertical: Spacing.one },
+  months: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -2 },
+  monthCell: { width: `${100 / 6}%`, padding: 2 },
+  monthPill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: Radius.pill,
   },
   nightsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.three,
   },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   stepperButton: {
-    width: 30,
-    height: 30,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: 2,
   },
-  nightsValue: {
-    minWidth: 28,
-    textAlign: 'center',
-  },
-  traveler: {
-    gap: Spacing.three,
-    paddingBottom: Spacing.two,
-  },
-  travelerHead: {
-    flexDirection: 'row',
+  minus: { width: 12, height: 2, borderRadius: 1 },
+  nightsValue: { minWidth: 28, textAlign: 'center' },
+  traveler: { padding: Spacing.three, gap: Spacing.two + 2 },
+  travelerHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  nameInput: { flex: 1, fontSize: 18, fontWeight: '600', paddingVertical: Spacing.one },
+  remove: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
-    gap: Spacing.three,
-  },
-  nameInput: {
-    flex: 1,
-    fontSize: 19,
-    paddingVertical: 2,
+    justifyContent: 'center',
   },
   budgetRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    borderBottomWidth: 1,
-    paddingVertical: Spacing.two + 2,
+    paddingHorizontal: Spacing.three,
+    minHeight: 48,
+    borderRadius: Radius.md,
   },
-  budgetInput: {
-    flex: 1,
-    fontSize: 15,
-  },
+  budgetInput: { flex: 1, fontSize: 15, paddingVertical: Spacing.two },
+  hint: { position: 'absolute', left: 0, right: 0, textAlign: 'center' },
 });

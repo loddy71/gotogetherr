@@ -13,6 +13,8 @@ Commands:
 
 - `npm run typecheck` — tsc, must stay clean
 - `npm run lint` — expo lint
+- `npm run check:data` — dataset sanity + fare calibration (sources and
+  refresh steps in `docs/DATA_SOURCES.md`)
 - `npm run build:web` then `npm run e2e` — Playwright smoke test of the full
   user flow against the static export
 
