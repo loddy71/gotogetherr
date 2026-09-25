@@ -94,6 +94,28 @@ try {
   await page.getByRole('button', { name: /^1 / }).click();
   await page.waitForSelector('text=Who pays what', { timeout: 15000 });
   console.log('detail OK');
+  await settle(page);
+  await page.screenshot({ path: shot('04-detail'), fullPage: true });
+
+  // Live-price hand-off: links must carry the route and suggested dates.
+  // Stub the destination so the test never depends on a third-party site.
+  await page.context().route('https://www.kayak.com/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<p>stub</p>' }),
+  );
+  await page.getByText('Check live prices').scrollIntoViewIfNeeded();
+  await settle(page);
+  await page.screenshot({ path: shot('12-live-prices') });
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByRole('button', { name: 'Kayak flights for Friend 1' }).click(),
+  ]);
+  await popup.waitForLoadState();
+  const kayakUrl = popup.url();
+  await popup.close();
+  if (!/^https:\/\/www\.kayak\.com\/flights\/LON-[A-Z]{3}\/\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}\/$/.test(kayakUrl)) {
+    throw new Error(`unexpected Kayak link: ${kayakUrl}`);
+  }
+  console.log(`live prices OK: ${kayakUrl}`);
 
   // Veto: Friend 1 rules the top pick out; the ranking moves on without it.
   const vetoedCity = first.split('\n')[2];
@@ -106,8 +128,6 @@ try {
   const afterVeto = (await page.getByRole('button', { name: /^1 / }).innerText()).split('\n')[2];
   if (afterVeto === vetoedCity) throw new Error(`veto ignored: ${vetoedCity} still ranked first`);
   console.log(`veto OK: ${vetoedCity} out, new top pick ${afterVeto}`);
-  await settle(page);
-  await page.screenshot({ path: shot('04-detail'), fullPage: true });
 
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
   await page.waitForSelector('text=Summer reunion', { timeout: 15000 });

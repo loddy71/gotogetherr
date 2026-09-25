@@ -74,6 +74,12 @@ Filters are saved with the trip and travel with its share link.
 out on Vegas"). It drops out of the ranking, the map and the month chart for
 everyone, travels in the share link, and can be restored from Refine.
 
+**Check live prices.** Every destination suggests concrete dates (the second
+Friday of the trip month, for the chosen number of nights) and hands off to
+real searches: Kayak and Google for each traveler's flights, and Booking.com
+for the group's rooms, sized two to a room. No API keys needed; this is the
+bridge until live pricing is wired in.
+
 **When's cheapest?** Under the filters, a 12-month chart shows what the best
 city would cost each person in every month, with the same mode and filters
 (the weather filters change month to month). Tap a month to preview it:

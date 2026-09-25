@@ -118,6 +118,21 @@ The session's network policy currently blocks these hosts:
 settings, and store keys as environment variables, never in the repo:
 `TRAVELPAYOUTS_TOKEN`, `DUFFEL_ACCESS_TOKEN`, `LITEAPI_KEY`.
 
+## Live-price hand-off links
+
+Until a live pricing proxy exists, each destination links out to real
+searches for the suggested dates. Formats were checked in September 2026:
+
+| Link | Format | Source |
+|---|---|---|
+| Kayak flights | `kayak.com/flights/LON-BCN/2026-10-09/2026-10-12/` (metro codes such as LON and NYC work) | [Apify Kayak scraper docs](https://apify.com/moving_beacon-owner1/kayak-flight-scraper) |
+| Booking.com hotels | `booking.com/searchresults.html?ss=…&checkin=…&checkout=…&group_adults=…&no_rooms=…` | [Browserless Booking.com skill](https://www.browserless.io/skills/booking.com/search-booking-hotel-prices) |
+| Google | a plain web search, `google.com/search?q=flights from London to Barcelona 2026-10-09 to 2026-10-12` | Google Flights now uses an opaque encoded `tfs` link ([HasData](https://hasdata.com/blog/how-to-scrape-google-flights)), so a search is the stable option |
+
+These are ordinary public URLs, not affiliate links. Swapping in
+Travelpayouts or Booking.com affiliate links later would earn commission on
+bookings.
+
 ## Refreshing the data
 
 1. Re-check the benchmark fares in `scripts/check-data.ts` and the hotel

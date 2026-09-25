@@ -13,6 +13,7 @@
  */
 import { averageHighC, CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
 import { hasVibe, passesFilters, restoreCity, sanitizeFilters, toggleVeto, vetoedCities } from '@/lib/filters';
+import { flightLinks, hotelLink, isoDate, suggestedDates } from '@/lib/booking';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
 import type { Trip } from '@/lib/types';
 
@@ -93,6 +94,22 @@ check(weatherFor(dxb, 11).hazard === undefined, 'DXB: November is fine');
 const lon = getCity('LON');
 check(averageHighC(lon, 1) === 8 && averageHighC(lon, 7) === 24, 'LON: Jan/Jul must equal the stored normals');
 check(averageHighC(lon, 8) >= 23, 'LON: August stays warm (normal ~23.6°C)');
+
+// ── Booking hand-off ─────────────────────────────────────────────────────
+{
+  const today = new Date(2026, 8, 25);
+  const oct = suggestedDates(10, 3, today);
+  check(oct.depart.getDay() === 5 && isoDate(oct.depart) === '2026-10-09', 'dates: second Friday of Oct 2026');
+  check(isoDate(oct.return) === '2026-10-12', 'dates: return = depart + nights');
+  check(suggestedDates(9, 2, today).depart.getFullYear() === 2027, 'dates: a passed month rolls to next year');
+  const kayak = flightLinks('LON', 'NYC', oct)[0].url;
+  check(kayak === 'https://www.kayak.com/flights/LON-NYC/2026-10-09/2026-10-12/', `kayak url: ${kayak}`);
+  const hotel = new URL(hotelLink('BCN', oct, 3).url);
+  check(
+    hotel.searchParams.get('group_adults') === '3' && hotel.searchParams.get('no_rooms') === '2',
+    'hotel link: 3 adults need 2 rooms',
+  );
+}
 
 // ── 4. Filters ───────────────────────────────────────────────────────────
 check(hasVibe(getCity('BCN'), 'beach', 7) && !hasVibe(getCity('PRG'), 'beach', 7), 'beach: BCN yes, PRG no');

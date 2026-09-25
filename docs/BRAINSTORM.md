@@ -125,7 +125,10 @@ The current direction is a **printed travel guide**:
   flow both ways
 
 **v1.2 — real money:**
-- Live flight prices (stage 2 above), "book" deep links (affiliate revenue)
+- ✅ "Check live prices": suggested dates plus Kayak/Google flight and
+  Booking.com hotel searches per destination (plain links today)
+- Live flight prices (stage 2 above); switch the hand-off links to
+  affiliate links for revenue
 - ✅ "When's cheapest?": the best city's per-person cost for each month of
   the year, with tap-to-preview and one-tap re-planning
 - Date-range search down to the week ("cheapest weekend in March"), which

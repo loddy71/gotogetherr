@@ -18,6 +18,7 @@ import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { StackedBar } from '@/components/cost-bar';
 import { Icon } from '@/components/icon';
+import { LivePricesCard } from '@/components/live-prices';
 import { PressableScale } from '@/components/pressable-scale';
 import { DotLeader } from '@/components/dot-leader';
 import { HEADER_BAR_HEIGHT, ScreenHeader } from '@/components/screen-header';
@@ -224,6 +225,15 @@ export default function DestinationScreen() {
                   })}
                 </View>
               </Card>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(320).duration(Motion.duration.slow)}>
+              <LivePricesCard
+                cityCode={city.code}
+                month={trip.month}
+                nights={trip.nights}
+                travelers={trip.travelers}
+              />
             </Animated.View>
 
             <ThemedText type="small" themeColor="textSecondary" style={styles.footnote}>
