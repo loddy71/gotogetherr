@@ -1,16 +1,23 @@
 import type { FlightQuery, FlightQuote, PriceProvider, StayQuery, StayQuote } from './provider';
 
 /**
- * Live pricing via the proxy in `server/pricing-proxy.mjs`, which wraps the
- * Amadeus Self-Service APIs (the API key stays server-side; the app only
- * knows the proxy URL). Quotes are cached in-memory per route+month for the
- * session; the proxy adds its own longer-lived cache on top.
+ * Live pricing from a server-side proxy that holds the upstream API keys
+ * (the app only knows the proxy URL). The proxy contract is two endpoints:
+ *
+ *   GET /flight?origin=LON&dest=BCN&month=10&nights=3  → { "price": 182 }
+ *     typical return economy fare per person, USD
+ *   GET /stay?city=BCN&month=10&nights=3               → { "price": 164 }
+ *     nightly rate for a mid-range double room, USD, taxes included
+ *
+ * Any upstream can sit behind it — docs/DATA_SOURCES.md compares the 2026
+ * options now that Amadeus Self-Service has shut down. Quotes are cached
+ * in-memory per route+month for the session.
  *
  * Any network / upstream failure throws — wrap in `FallbackProvider` so the
  * ranking engine degrades to estimates per-route instead of failing whole.
  */
-export class AmadeusPriceProvider implements PriceProvider {
-  readonly name = 'amadeus';
+export class ProxyPriceProvider implements PriceProvider {
+  readonly name = 'live';
   private cache = new Map<string, Promise<number>>();
 
   constructor(private readonly proxyBaseUrl: string) {}

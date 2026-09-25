@@ -1,4 +1,4 @@
-# GoTogether ✈️
+# GoTogether
 
 **Find the best city for friends in different countries to meet up.**
 
@@ -10,23 +10,64 @@ against **fairest for everyone**.
 One codebase, three targets: it runs as a web app and as a native **iOS**
 (and Android) app via [Expo](https://expo.dev).
 
-| Home | Ranked results | Per-person breakdown |
+| Home | Ranked results | Who pays what |
 |---|---|---|
 | ![Home](docs/screenshots/01-home.png) | ![Results](docs/screenshots/03-results.png) | ![Detail](docs/screenshots/04-detail.png) |
 
-| Trip invites | Dark mode |
-|---|---|
-| ![Join](docs/screenshots/05-join.png) | ![Dark](docs/screenshots/dark-results.png) |
+| Refine | Planning a trip | Dark mode |
+|---|---|---|
+| ![Refine](docs/screenshots/09-refine-sheet.png) | ![Form](docs/screenshots/02-form.png) | ![Dark](docs/screenshots/06-dark-results.png) |
+
+## Design
+
+Paper and ink, softened. The palette is warm paper stock, ink type and one
+stamp-red accent used sparingly. Instrument Serif carries the display type.
+Surfaces are rounded cards with hairline edges and very soft shadows. There
+are no gradients, and no emoji used as icons (flags stay, because they're
+data).
+
+**Motion is the point of this version.** One set of springs and curves in
+`src/constants/theme.ts` (`Motion`) drives everything:
+
+- Switching Cheapest / Balanced / Fairest slides the segmented thumb,
+  glides each result card into its new position, rolls the prices to their
+  new values, and re-routes the map to the new top pick.
+- The route map pans and zooms to frame everyone and draws each traveller's
+  arc into the meeting city.
+- Screens stagger in, large titles collapse into the header as you scroll,
+  and the city picker is a drag-to-dismiss sheet.
+- Every tap target sinks on a spring and, on iOS and Android, gives a light
+  haptic. On iOS 26 the floating action bar is Liquid Glass.
+- Reduced-motion settings are respected.
+
+Shared primitives: `PressableScale`, `Card`, `Button`, `Chip`, `Avatar`,
+`Segmented`, `Sheet`, `WorldMap`, `CostBar`, `AnimatedNumber`,
+`ScreenHeader`.
 
 ## How the ranking works
 
 For every candidate city, each traveler gets an estimated cost:
 
 ```
-return flight (seasonal, distance & hub adjusted)
-+ hotel share (mid-range, double occupancy)
+return flight (distance-calibrated, airport, month & destination season)
++ share of a mid-range double room (taxes and resort fees included, seasonal)
 + food & local transport × nights
 ```
+
+Each destination also shows the expected weather for the trip month, with
+monsoon, hurricane, rainy-season and extreme-heat warnings, plus its hotel
+season and each traveler's time in the air.
+
+Then **Refine** narrows the list to places the group would actually go.
+Every change re-sorts the list behind the sheet live:
+
+- **Vibes:** beach, nightlife, culture, nature, or warm (25°C+ in the trip
+  month, from climate data). Pick several and a city must have them all.
+- **Longest flight for anyone:** ≤ 5, 8 or 12 hours in the air.
+- **Skip bad-weather cities** (on by default): monsoon, hurricane and
+  typhoon seasons, or 38°C+.
+
+Filters are saved with the trip and travel with its share link.
 
 Cities are then scored on a blend you control:
 
@@ -42,24 +83,27 @@ encoded in the URL — no accounts, no backend. Friends who open it land on the
 `/join` screen, get a local copy saved to their device, and can add themselves
 or tweak budgets.
 
-## Pricing: estimates now, live quotes when you want them
+## Pricing: calibrated estimates, live quotes when you want them
 
-By default prices come from a deterministic estimator (`src/lib/pricing/`):
-distance-banded return fares adjusted for airport competitiveness and season,
-plus per-city hotel/food indices. Same inputs → same prices, fully offline.
+Prices come from a deterministic estimator (`src/lib/pricing/`) calibrated
+in September 2026 against published fares and hotel rates. On seven
+benchmark routes it lands within ±11% of the typical return fare, and
+`npm run check:data` keeps it that way in CI. Same inputs give the same
+prices, fully offline.
 
-For live quotes, run the bundled Amadeus proxy (keeps your API key off the
-client) and point the app at it:
+For live quotes, point the app at a pricing proxy that implements two
+endpoints (contract in `src/lib/pricing/proxy-provider.ts`):
 
 ```bash
-AMADEUS_CLIENT_ID=xxx AMADEUS_CLIENT_SECRET=yyy node server/pricing-proxy.mjs
-EXPO_PUBLIC_PRICE_PROXY_URL=http://localhost:8787 npx expo start
+EXPO_PUBLIC_PRICE_PROXY_URL=https://your-proxy.example npx expo start
 ```
 
-Quotes are cached for 24h per route+month, and any route the API can't price
-falls back to the estimator automatically (see `FallbackProvider`). See
-[docs/BRAINSTORM.md](docs/BRAINSTORM.md) for the full product brainstorm and
-roadmap.
+Any route the proxy can't price falls back to the estimator automatically
+(`FallbackProvider`). **Amadeus Self-Service, which the previous proxy
+wrapped, shut down on 17 July 2026.** See
+[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for sources, known limitations
+and the recommended replacement stack (Travelpayouts, Duffel, LiteAPI).
+[docs/BRAINSTORM.md](docs/BRAINSTORM.md) has the product roadmap.
 
 ## Getting started
 
@@ -80,10 +124,11 @@ To ship a standalone iOS app, use [EAS Build](https://docs.expo.dev/build/introd
 ## Development
 
 ```bash
-npx tsc --noEmit     # typecheck
+npm run typecheck    # tsc
 npm run lint         # eslint (expo lint)
+npm run check:data   # dataset sanity + fare calibration against benchmarks
 npm run build:web    # static web export into dist/
-npm run e2e          # Playwright smoke test against dist/
+npm run e2e          # Playwright smoke test against dist/ (light + dark)
 ```
 
 ### Project layout
@@ -95,10 +140,11 @@ src/
     new-trip.tsx        create/edit trip (modal)
     trip/[id]/index.tsx ranked destinations for a trip
     trip/[id]/[city].tsx  per-person cost breakdown
-  components/           shared UI (buttons, city picker, result cards…)
+  components/           shared UI (cards, sheet, map, segmented, result cards…)
   lib/
-    data/cities.ts      candidate city dataset (prices, coords, vibes)
-    pricing/            PriceProvider interface + estimator + Amadeus stub
+    data/cities.ts      50-city dataset: prices, seasons, climate, coords
+    data/land-dots.ts   dotted world map (generated: scripts/gen-land-dots.mjs)
+    pricing/            PriceProvider interface, estimator, live-proxy client
     scoring.ts          the ranking engine (cost × fairness × budget)
     store.tsx           trips state, persisted via AsyncStorage
 ```

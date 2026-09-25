@@ -1,119 +1,86 @@
 /**
- * GoTogether design tokens: color palette (light/dark), brand + per-vibe
- * gradients, typography and spacing.
+ * GoTogether design tokens.
+ *
+ * Paper and ink, softened: warm stock, ink type, a serif for display, one
+ * stamp-red accent used sparingly, and rounded surfaces that move with
+ * springs rather than snapping. No gradients, no emoji as iconography.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 export const Colors = {
   light: {
-    text: '#191A23',
-    textSecondary: '#6D7280',
-    background: '#F6F6F9',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#EEEDFB',
-    card: '#FFFFFF',
-    border: '#E7E7EF',
-    tint: '#5B4DE0',
+    background: '#F3F0E8',
+    /** Cards and sheets. */
+    backgroundElement: '#FCFAF6',
+    /** Pressed rows, sunken fields, skeletons. */
+    backgroundSelected: '#E9E4D8',
+    card: '#FCFAF6',
+    border: '#E0D9CB',
+    borderStrong: '#C4BBA8',
+    text: '#1C1916',
+    textSecondary: '#766D60',
+    tint: '#A33F27',
+    /** Map land dots. */
+    land: '#D9D2C2',
+    scrim: 'rgba(28, 25, 22, 0.38)',
   },
   dark: {
-    text: '#F4F4F8',
-    textSecondary: '#9DA1AE',
-    background: '#0C0D13',
-    backgroundElement: '#171923',
-    backgroundSelected: '#262A3D',
-    card: '#171923',
-    border: '#252838',
-    tint: '#8B7DFF',
+    background: '#12100E',
+    backgroundElement: '#1C1915',
+    backgroundSelected: '#29251F',
+    card: '#1C1915',
+    border: '#2F2A24',
+    borderStrong: '#484137',
+    text: '#F1ECE2',
+    textSecondary: '#9C9386',
+    tint: '#DB7254',
+    land: '#39332B',
+    scrim: 'rgba(0, 0, 0, 0.55)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type Palette = (typeof Colors)['light'] | (typeof Colors)['dark'];
 
-/** Brand gradient — buttons, hero accents, selected chips. */
-export const BrandGradient = ['#5B4DE0', '#9333EA'] as const;
-export const DangerColor = '#E5484D';
-export const SuccessColor = '#22A06B';
+export const DangerColor = '#B4432B';
+export const SuccessColor = '#3F7050';
 
-/** Distinct colors for travelers in spread bars & breakdowns. */
+/** Traveler ink colors — muted travel-stamp set, ordered for mutual contrast. */
 export const TravelerColors = [
-  '#5B4DE0',
-  '#0EA5E9',
-  '#F59E0B',
-  '#EC4899',
-  '#10B981',
-  '#F97316',
-  '#8B5CF6',
-  '#14B8A6',
+  '#B0513A',
+  '#35635A',
+  '#C0913F',
+  '#4A5F86',
+  '#86597F',
+  '#5E6E36',
+  '#9A6C45',
+  '#4F6A74',
 ] as const;
 
 export function travelerColor(index: number): string {
   return TravelerColors[index % TravelerColors.length];
 }
 
-/** Rank medal colors for the podium (#1–#3). */
-export const MedalGradients: [string, string][] = [
-  ['#F7C948', '#DE911D'], // gold
-  ['#CBD2D9', '#9AA5B1'], // silver
-  ['#D7A97C', '#B4743E'], // bronze
-];
+/** Cost components in the per-person breakdown. */
+export const CostColors = {
+  flight: '#35635A',
+  hotel: '#B0513A',
+  daily: '#C0913F',
+} as const;
 
-/** Each city vibe maps to a gradient so destination tiles feel distinct. */
-const VibeGradients: Record<string, [string, string]> = {
-  beach: ['#38BDF8', '#0284C7'],
-  sun: ['#FBBF24', '#F97316'],
-  nightlife: ['#A855F7', '#6D28D9'],
-  food: ['#FB923C', '#EA580C'],
-  museums: ['#818CF8', '#4F46E5'],
-  history: ['#C084FC', '#7C3AED'],
-  nature: ['#34D399', '#059669'],
-  views: ['#22D3EE', '#0891B2'],
-  music: ['#F472B6', '#DB2777'],
-  romance: ['#FB7185', '#E11D48'],
-  design: ['#94A3B8', '#475569'],
-  luxury: ['#FCD34D', '#B45309'],
-  shopping: ['#F9A8D4', '#BE185D'],
-  wellness: ['#6EE7B7', '#047857'],
-  mountains: ['#A5B4FC', '#4338CA'],
-};
-
-const FallbackGradients: [string, string][] = [
-  ['#5B4DE0', '#9333EA'],
-  ['#0EA5E9', '#2563EB'],
-  ['#F59E0B', '#DC2626'],
-  ['#10B981', '#0D9488'],
-];
-
-/** Gradient for a city tile, keyed off its first recognised vibe. */
-export function cityGradient(vibes: string[], seed: string): [string, string] {
-  for (const vibe of vibes) {
-    const g = VibeGradients[vibe];
-    if (g) return g;
-  }
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return FallbackGradients[h % FallbackGradients.length];
-}
+export const DisplayFont = Platform.select({
+  ios: 'InstrumentSerif_400Regular',
+  android: 'InstrumentSerif_400Regular',
+  default: "InstrumentSerif_400Regular, 'Iowan Old Style', Georgia, serif",
+});
 
 export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
+  ios: { sans: 'system-ui', serif: 'ui-serif', rounded: 'ui-rounded', mono: 'ui-monospace' },
+  default: { sans: 'normal', serif: 'serif', rounded: 'normal', mono: 'monospace' },
   web: {
     sans: 'var(--font-display)',
     serif: 'var(--font-serif)',
@@ -139,5 +106,23 @@ export const Radius = {
   pill: 999,
 } as const;
 
+export const Hairline = Platform.select({ web: 1, default: 0.5 }) ?? 1;
+
+/**
+ * Motion. Springs for anything the finger moves or that changes place;
+ * timing curves for fades and value tweens. One set, used everywhere, so
+ * the whole app moves with the same weight.
+ */
+export const Motion = {
+  /** Press feedback, toggles. */
+  snappy: { damping: 20, stiffness: 320, mass: 0.6 },
+  /** Things changing position (thumbs, sheets, reordering). */
+  glide: { damping: 24, stiffness: 190, mass: 0.9 },
+  duration: { fast: 160, base: 280, slow: 520 },
+  ease: Easing.bezier(0.2, 0.8, 0.2, 1),
+  /** Delay between siblings entering in sequence. */
+  stagger: 45,
+} as const;
+
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const MaxContentWidth = 640;

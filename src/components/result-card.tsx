@@ -1,96 +1,129 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedNumber } from '@/components/animated-number';
 import { Card } from '@/components/card';
-import { CityTile } from '@/components/city-tile';
-import { RankMedal } from '@/components/rank-medal';
-import { SpreadBar } from '@/components/spread-bar';
+import { Chip } from '@/components/chip';
+import { CostBar } from '@/components/cost-bar';
+import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { DangerColor, Radius, Spacing, SuccessColor } from '@/constants/theme';
+import { DangerColor, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getCity } from '@/lib/data/cities';
+import { getCity, weatherFor } from '@/lib/data/cities';
 import { money } from '@/lib/format';
 import type { DestinationResult } from '@/lib/types';
 
 type ResultCardProps = {
   rank: number;
   result: DestinationResult;
+  month: number;
   onPress: () => void;
+  /** Delay for the cost bar's grow-in, so a list reveals top to bottom. */
+  revealDelay?: number;
 };
 
-export function ResultCard({ rank, result, onPress }: ResultCardProps) {
-  const city = getCity(result.cityCode);
-  const fairnessPct = Math.round(result.fairness * 100);
-
-  return (
-    <Card onPress={onPress} style={styles.card}>
-      <View style={styles.header}>
-        <RankMedal rank={rank} />
-        <CityTile city={city} />
-        <View style={{ flex: 1, gap: 1 }}>
-          <ThemedText type="heading">{city.name}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {city.country} · {city.vibes.slice(0, 3).join(' · ')}
-          </ThemedText>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <ThemedText type="stat">{money(result.avgCost)}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            avg / person
-          </ThemedText>
-        </View>
-      </View>
-
-      <SpreadBar perTraveler={result.perTraveler} />
-
-      <View style={styles.badges}>
-        <Badge label={`group ${money(result.totalCost)}`} />
-        <Badge
-          label={`fairness ${fairnessPct}%`}
-          tone={fairnessPct >= 75 ? 'success' : undefined}
-        />
-        {result.overBudgetCount > 0 && (
-          <Badge label={`${result.overBudgetCount} over budget`} tone="danger" />
-        )}
-      </View>
-    </Card>
-  );
-}
-
-function Badge({ label, tone }: { label: string; tone?: 'danger' | 'success' }) {
+export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: ResultCardProps) {
   const theme = useTheme();
-  const background =
-    tone === 'danger' ? DangerColor : tone === 'success' ? SuccessColor : theme.backgroundSelected;
+  const city = getCity(result.cityCode);
+  const weather = weatherFor(city, month);
+  const isTop = rank === 1;
 
   return (
-    <View style={[styles.badge, { backgroundColor: background }]}>
-      <ThemedText
-        type="small"
-        style={[{ fontSize: 12, lineHeight: 16 }, tone ? { color: '#fff' } : undefined]}
-        themeColor={tone ? undefined : 'textSecondary'}>
-        {label}
-      </ThemedText>
-    </View>
+    <PressableScale onPress={onPress} scaleTo={0.985}>
+      <Card style={[styles.card, isTop && { borderColor: theme.tint, borderWidth: 1 }]}>
+        <View style={styles.head}>
+          <ThemedText
+            type="numeral"
+            style={[styles.rank, { color: isTop ? theme.tint : theme.textSecondary }]}>
+            {rank}
+          </ThemedText>
+          <View style={{ flex: 1, gap: 2 }}>
+            <View style={styles.cityLine}>
+              <Text style={styles.flag}>{city.flag}</Text>
+              <ThemedText type="heading" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {city.name}
+              </ThemedText>
+            </View>
+            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+              {city.country} · {city.vibes.slice(0, 2).join(', ')}
+            </ThemedText>
+          </View>
+          <View style={styles.price}>
+            <AnimatedNumber type="price" value={result.avgCost} format={money} />
+            <ThemedText type="caption" themeColor="textSecondary">
+              each
+            </ThemedText>
+          </View>
+        </View>
+
+        <CostBar perTraveler={result.perTraveler} delay={revealDelay} />
+
+        <View style={styles.meta}>
+          <ThemedText type="small" themeColor="textSecondary" style={{ flexShrink: 1 }}>
+            {money(result.totalCost)} total · {Math.round(result.fairness * 100)}% even
+          </ThemedText>
+          <View style={styles.chips}>
+            <Chip
+              icon={weather.hazard && weather.hazard !== 'Extreme heat' ? 'rain' : 'sun'}
+              label={weather.hazard ? `${weather.highC}° · ${weather.hazard}` : `${weather.highC}°C`}
+              tone={weather.hazard ? 'warning' : 'neutral'}
+            />
+          </View>
+        </View>
+
+        {(isTop || result.overBudgetCount > 0) && (
+          <View style={styles.flags}>
+            {isTop && <Chip label="Best match" tone="accent" />}
+            {result.overBudgetCount > 0 && (
+              <ThemedText type="caption" style={{ color: DangerColor }}>
+                Over budget for {result.overBudgetCount}
+              </ThemedText>
+            )}
+          </View>
+        )}
+      </Card>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     padding: Spacing.three,
-    gap: Spacing.three - 4,
+    gap: Spacing.three,
   },
-  header: {
+  head: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.two + 2,
   },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one + Spacing.half,
+  rank: {
+    width: 22,
+    paddingTop: 4,
   },
-  badge: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  cityLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  flag: {
+    fontSize: 18,
+  },
+  price: {
+    alignItems: 'flex-end',
+  },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: Spacing.one,
+  },
+  flags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: -Spacing.one,
   },
 });

@@ -1,49 +1,37 @@
-import { Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Elevated surface with border + soft shadow. Pass `onPress` to make it
- * tappable (with press feedback), omit it for a static card.
- */
-type CardProps = Omit<PressableProps, 'style'> & {
-  style?: ViewStyle | ViewStyle[];
-  children: React.ReactNode;
-};
-
-export function Card({ style, children, onPress, ...rest }: CardProps) {
+/** Raised paper: rounded, hairline-edged, with a shadow soft enough to read as depth, not chrome. */
+export function Card({
+  style,
+  children,
+  ...rest
+}: ViewProps & { style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
-  const surface = [
-    styles.card,
-    { backgroundColor: theme.card, borderColor: theme.border },
-    ...(Array.isArray(style) ? style : style ? [style] : []),
-  ];
-
-  if (!onPress) return <View style={surface}>{children}</View>;
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        ...surface,
-        pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-      ]}
+    <View
+      style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }, style]}
       {...rest}>
       {children}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    shadowColor: '#10102E',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...Platform.select({
+      web: { boxShadow: '0 1px 2px rgba(40, 30, 20, 0.04), 0 8px 24px rgba(40, 30, 20, 0.05)' },
+      default: {
+        shadowColor: '#281E14',
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 1,
+      },
+    }),
   },
 });

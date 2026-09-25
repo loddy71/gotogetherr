@@ -1,118 +1,179 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Button } from '@/components/button';
+import { Icon } from '@/components/icon';
+import { PressableScale } from '@/components/pressable-scale';
+import { Sheet } from '@/components/sheet';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { CITIES, cityLabel, type City } from '@/lib/data/cities';
+import { CITIES, REGIONS, regionOf, type City } from '@/lib/data/cities';
 
 type CityPickerProps = {
-  /** Currently selected city code, if any. */
   value?: string;
   placeholder?: string;
   onSelect: (code: string) => void;
 };
 
-/** Tappable field that opens a searchable full-screen city list. */
+/** Rounded field that opens a searchable, region-sectioned sheet of cities. */
 export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: CityPickerProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(() => {
+  const selected = value ? CITIES.find((c) => c.code === value) : undefined;
+
+  const sections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return CITIES;
-    return CITIES.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q),
-    );
+    const matches = q
+      ? CITIES.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q),
+        )
+      : CITIES;
+    return REGIONS.map((region) => ({
+      title: region,
+      data: matches.filter((c) => regionOf(c) === region),
+    })).filter((s) => s.data.length > 0);
   }, [search]);
 
-  const pick = (city: City) => {
-    onSelect(city.code);
+  const close = () => {
     setOpen(false);
     setSearch('');
   };
 
+  const pick = (city: City) => {
+    onSelect(city.code);
+    close();
+  };
+
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
+      <PressableScale
+        scaleTo={0.985}
+        accessibilityLabel={selected ? `Home city: ${selected.name}` : placeholder}
         onPress={() => setOpen(true)}
-        style={[styles.field, { backgroundColor: theme.background, borderColor: theme.border }]}>
-        <ThemedText themeColor={value ? 'text' : 'textSecondary'}>
-          {value ? cityLabel(value) : placeholder}
-        </ThemedText>
-      </Pressable>
+        style={[styles.field, { backgroundColor: theme.backgroundSelected }]}>
+        {selected ? (
+          <View style={styles.fieldRow}>
+            <Text style={styles.flag}>{selected.flag}</Text>
+            <ThemedText type="defaultBold">{selected.name}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1 }} numberOfLines={1}>
+              {selected.country}
+            </ThemedText>
+          </View>
+        ) : (
+          <View style={styles.fieldRow}>
+            <Icon name="plane" size={17} color={theme.textSecondary} />
+            <ThemedText type="default" themeColor="textSecondary" style={{ flex: 1 }}>
+              {placeholder}
+            </ThemedText>
+          </View>
+        )}
+        <Icon name="chevron-down" size={18} color={theme.textSecondary} />
+      </PressableScale>
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View
-          style={[
-            styles.sheet,
-            { backgroundColor: theme.background, paddingTop: insets.top + Spacing.three },
-          ]}>
-          <TextInput
-            autoFocus
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search cities or countries…"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.search,
-              { backgroundColor: theme.backgroundElement, color: theme.text },
-            ]}
-          />
-          <FlatList
-            data={filtered}
-            keyExtractor={(c) => c.code}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <Pressable
-                accessibilityRole="button"
+      <Sheet
+        visible={open}
+        onClose={close}
+        header={
+          <View style={{ gap: Spacing.three }}>
+            <ThemedText type="heading">Where do they fly from?</ThemedText>
+            <View style={[styles.search, { backgroundColor: theme.backgroundSelected }]}>
+              <Icon name="search" size={18} color={theme.textSecondary} />
+              <TextInput
+                autoFocus
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search cities or countries…"
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.searchInput, { color: theme.text }]}
+              />
+            </View>
+          </View>
+        }>
+        <SectionList
+          sections={sections}
+          keyExtractor={(c) => c.code}
+          keyboardShouldPersistTaps="handled"
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={{ paddingHorizontal: Spacing.three, paddingBottom: Spacing.five }}
+          renderSectionHeader={({ section }) => (
+            <ThemedText type="label" themeColor="textSecondary" style={styles.sectionHeader}>
+              {section.title}
+            </ThemedText>
+          )}
+          ListEmptyComponent={
+            <ThemedText type="default" themeColor="textSecondary" style={{ padding: Spacing.three }}>
+              No city matches “{search}”. The list covers 50 cities; try the nearest big hub.
+            </ThemedText>
+          }
+          renderItem={({ item }) => {
+            const isSelected = item.code === value;
+            return (
+              <PressableScale
+                testID={`city-option-${item.code}`}
+                feedback="selection"
+                scaleTo={0.98}
                 onPress={() => pick(item)}
-                style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
-                <ThemedText>
-                  {item.flag} {item.name}
+                style={[styles.row, isSelected && { backgroundColor: theme.backgroundSelected }]}>
+                <Text style={styles.flag}>{item.flag}</Text>
+                <ThemedText type="default" style={{ flex: 1 }}>
+                  {item.name}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                   {item.country}
                 </ThemedText>
-              </Pressable>
-            )}
-          />
-          <View style={{ paddingBottom: insets.bottom + Spacing.two }}>
-            <Button title="Cancel" variant="secondary" onPress={() => setOpen(false)} />
-          </View>
-        </View>
-      </Modal>
+              </PressableScale>
+            );
+          }}
+        />
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   field: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
     paddingHorizontal: Spacing.three,
+    minHeight: 50,
+    borderRadius: Radius.md,
   },
-  sheet: {
+  fieldRow: {
     flex: 1,
-    paddingHorizontal: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
   },
+  flag: {
+    fontSize: 18,
+  },
   search: {
-    borderRadius: 12,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
     paddingHorizontal: Spacing.three,
+    borderRadius: Radius.md,
+    minHeight: 46,
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 16,
+    paddingVertical: Spacing.two,
+  },
+  sectionHeader: {
+    paddingHorizontal: Spacing.two,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: 13,
+    borderRadius: Radius.sm + 2,
   },
 });

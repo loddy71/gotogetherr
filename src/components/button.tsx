@@ -1,68 +1,82 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { Icon, type IconName } from '@/components/icon';
+import { PressableScale, type PressableScaleProps } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { BrandGradient, DangerColor, Radius, Spacing } from '@/constants/theme';
+import { DangerColor, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type ButtonProps = Omit<PressableProps, 'style'> & {
+type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
   title: string;
-  variant?: 'primary' | 'secondary' | 'destructive';
-  style?: ViewStyle;
+  /** primary: ink pill · secondary: outlined pill · destructive: red outline · ghost: bare */
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
+  icon?: IconName;
+  size?: 'large' | 'small';
+  style?: StyleProp<ViewStyle>;
 };
 
-export function Button({ title, variant = 'primary', style, disabled, ...rest }: ButtonProps) {
+export function Button({
+  title,
+  variant = 'primary',
+  icon,
+  size = 'large',
+  style,
+  ...rest
+}: ButtonProps) {
   const theme = useTheme();
 
-  const label = (
-    <ThemedText
-      type="smallBold"
-      style={{ color: variant === 'secondary' ? theme.text : '#ffffff', fontSize: 15 }}>
-      {title}
-    </ThemedText>
-  );
+  const background = variant === 'primary' ? theme.text : 'transparent';
+  const borderColor =
+    variant === 'primary'
+      ? theme.text
+      : variant === 'destructive'
+        ? DangerColor
+        : variant === 'ghost'
+          ? 'transparent'
+          : theme.borderStrong;
+  const color =
+    variant === 'primary'
+      ? theme.background
+      : variant === 'destructive'
+        ? DangerColor
+        : theme.text;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      style={({ pressed }) => [
-        { opacity: disabled ? 0.4 : pressed ? 0.8 : 1, borderRadius: Radius.md },
-        variant !== 'primary' && [
-          styles.base,
-          {
-            backgroundColor: variant === 'destructive' ? DangerColor : theme.backgroundElement,
-            borderWidth: variant === 'secondary' ? 1 : 0,
-            borderColor: theme.border,
-          },
-        ],
+    <PressableScale
+      accessibilityLabel={title}
+      style={[
+        styles.base,
+        size === 'small' && styles.small,
+        { backgroundColor: background, borderColor },
         style,
       ]}
       {...rest}>
-      {variant === 'primary' ? (
-        <LinearGradient
-          colors={BrandGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.base, styles.gradient]}>
-          {label}
-        </LinearGradient>
-      ) : (
-        label
-      )}
-    </Pressable>
+      <View style={styles.row}>
+        {icon && <Icon name={icon} size={size === 'small' ? 16 : 18} color={color} strokeWidth={2} />}
+        <ThemedText type={size === 'small' ? 'smallBold' : 'defaultBold'} style={{ color }}>
+          {title}
+        </ThemedText>
+      </View>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
     paddingHorizontal: Spacing.four,
-    borderRadius: Radius.md,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
   },
-  gradient: {
-    width: '100%',
+  small: {
+    minHeight: 38,
+    paddingHorizontal: Spacing.three,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
 });

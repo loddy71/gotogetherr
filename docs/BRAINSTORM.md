@@ -53,7 +53,8 @@ when you pay $200?".
 | Stage | Source | Status |
 |---|---|---|
 | 1 | Deterministic estimator (distance-banded fares, hub factor, seasonality, city hotel/food indices) | ✅ shipped — free, offline, stable rankings |
-| 2 | Live flight + hotel quotes via Amadeus Self-Service behind `server/pricing-proxy.mjs`, cached per route+month, per-route fallback to estimates | ✅ shipped (opt-in via `EXPO_PUBLIC_PRICE_PROXY_URL`) |
+| 1b | Estimator calibrated to 2026 benchmark fares and hotel rates; per-destination seasons, climate and hazards | ✅ shipped. `npm run check:data` guards it in CI |
+| 2 | Live quotes behind a server-side proxy with per-route fallback. Amadeus Self-Service was used first but **shut down 17 July 2026**; next up is Travelpayouts month prices for ranking, Duffel to verify the shortlist, LiteAPI for hotels | client + fallback shipped; upstream to replace (see `docs/DATA_SOURCES.md`) |
 | 3 | "Live" vs "estimate" labels in the UI, booking deep links (affiliate) | planned |
 
 Lessons baked into the provider interface:
@@ -64,6 +65,34 @@ Lessons baked into the provider interface:
   the UI can mark "estimate" vs "live".
 - API keys never ship in the client bundle → quotes go through a tiny proxy
   (Expo API routes or a Cloudflare Worker).
+
+## Design direction
+
+**v3 (current): paper and ink, softened, with motion.** Feedback on v2 was
+to make it smoother. The identity stays (paper, ink, serif, one accent), but
+surfaces are rounded cards, and everything moves on one shared set of
+springs: results glide when re-ranked, the map re-routes, figures roll,
+sheets drag. A route map shows where everyone flies from, which does more to
+explain "meet in the middle" than any copy.
+
+**v2: printed travel guide.**
+
+First pass looked like every other generated app: violet gradients, emoji as
+iconography, medal circles, pill badges, drop-shadowed cards. It read as
+templated, which is death for a product whose whole pitch is taste and
+judgement about travel.
+
+The current direction is a **printed travel guide**:
+
+- Warm paper stock and ink, not white-on-grey chrome. One accent (stamp red),
+  rationed to the top-ranked city, selected tabs and links.
+- Instrument Serif for display type against a plain system sans for body and
+  small-caps labels — the magazine pairing, not the SaaS one.
+- Hairline rules do the grouping; no shadows, near-square corners.
+- Data gets typographic treatment: tabular figures, rank numerals set in the
+  margin, dot leaders on the per-person bill, thin cost bars in a muted
+  travel-stamp palette that also identifies each traveller elsewhere.
+- No decorative emoji. Flags stay, because a flag is data.
 
 ## Why Expo (web + iOS from one codebase)
 
@@ -86,8 +115,10 @@ Lessons baked into the provider interface:
 **v1.1 — the social loop:**
 - ✅ Shareable trip link (trip encoded in the URL, zero-backend `/join` flow);
   friends open it and drop in their own city + budget
-- Voting/vetoes on the shortlist ("no beach cities", "must have nightlife")
-- Vibe filters powered by the existing tags (beach, nightlife, food, nature…)
+- ✅ Refine: vibe filters (beach, nightlife, culture, nature, warm), a limit
+  on the longest flight anyone takes, and skipping monsoon/hurricane/
+  extreme-heat cities. Saved with the trip and carried in share links
+- Voting/vetoes on the shortlist, per person ("I'm out on Vegas")
 
 **v1.2 — real money:**
 - Live flight prices (stage 2 above), "book" deep links (affiliate revenue)
