@@ -12,7 +12,9 @@
  * docs/DATA_SOURCES.md. Re-verify and update them when refreshing the data.
  */
 import { CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
+import { hasVibe, passesFilters, sanitizeFilters } from '@/lib/filters';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
+import type { Trip } from '@/lib/types';
 
 /** Typical return economy fare, USD (midpoint of the published range). */
 const FARE_BENCHMARKS: { from: string; to: string; usd: number }[] = [
@@ -86,6 +88,31 @@ const bue = getCity('BUE');
 check(hotelSeasonFactor(bue, 7) < hotelSeasonFactor(bue, 1), 'BUE: July is southern winter');
 check(weatherFor(getCity('BOM'), 7).hazard === 'Monsoon', 'BOM: July must flag the monsoon');
 check(weatherFor(dxb, 7).hazard === 'Extreme heat', 'DXB: July must flag extreme heat');
+
+// ── 4. Filters ───────────────────────────────────────────────────────────
+check(hasVibe(getCity('BCN'), 'beach', 7) && !hasVibe(getCity('PRG'), 'beach', 7), 'beach: BCN yes, PRG no');
+check(!hasVibe(getCity('STO'), 'beach', 7), 'beach: Stockholm has islands, not beaches');
+check(hasVibe(getCity('SYD'), 'warm', 1) && !hasVibe(getCity('LON'), 'warm', 1), 'warm: Sydney in Jan, not London');
+const trip = (month: number, origins: string[]): Trip => ({
+  id: 't',
+  name: 't',
+  month,
+  nights: 3,
+  fairnessWeight: 0.5,
+  createdAt: 0,
+  travelers: origins.map((originCode, i) => ({ id: String(i), name: String(i), originCode })),
+});
+check(!passesFilters(trip(7, ['LON', 'NYC']), 'BOM'), 'bad weather: Mumbai hidden in July (monsoon)');
+check(passesFilters(trip(11, ['LON', 'NYC']), 'BOM'), 'bad weather: Mumbai fine in November');
+check(
+  !passesFilters(trip(10, ['LON', 'NYC']), 'TYO', { vibes: [], maxFlightHours: 8, avoidBadWeather: true }),
+  'flight limit: New York–Tokyo exceeds 8 h',
+);
+const clean = sanitizeFilters({ vibes: ['beach', 'nope', 'beach'], maxFlightHours: 7, avoidBadWeather: 'x' });
+check(
+  JSON.stringify(clean) === JSON.stringify({ vibes: ['beach'], maxFlightHours: null, avoidBadWeather: true }),
+  `sanitizeFilters drops unknown values (got ${JSON.stringify(clean)})`,
+);
 
 fareReport().then((report) => {
   console.log(`Checked ${CITIES.length} cities.`);

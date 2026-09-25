@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AvatarStack } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Chip } from '@/components/chip';
+import { RefineSheet } from '@/components/refine-sheet';
 import { ResultCard } from '@/components/result-card';
 import { HEADER_BAR_HEIGHT, HeaderIconButton, ScreenHeader } from '@/components/screen-header';
 import { Segmented } from '@/components/segmented';
@@ -25,13 +27,14 @@ import { WorldMap } from '@/components/world-map';
 import { MaxContentWidth, Motion, Radius, Spacing, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity } from '@/lib/data/cities';
+import { applyFilters, describeFilters, filtersOf } from '@/lib/filters';
 import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { flightHours } from '@/lib/pricing/mock-provider';
 import { rankDestinations } from '@/lib/scoring';
 import { shareTrip } from '@/lib/share';
 import { useTrip, useTrips } from '@/lib/store';
-import type { DestinationResult } from '@/lib/types';
+import type { DestinationResult, TripFilters } from '@/lib/types';
 
 type RankMode = 'cheapest' | 'balanced' | 'fairest';
 
@@ -63,6 +66,7 @@ export default function ResultsScreen() {
   // The staggered entrance plays on arrival; re-ranking by mode glides in place.
   const [settled, setSettled] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -109,8 +113,16 @@ export default function ResultsScreen() {
   }
 
   const mode = modeForWeight(trip.fairnessWeight);
-  const top = results?.[0];
-  const visible = results ? (showAll ? results : results.slice(0, INITIAL_VISIBLE)) : [];
+  const filters = filtersOf(trip);
+  const activeFilters = describeFilters(filters);
+  const ranked = results ? applyFilters(trip, results) : null;
+  const top = ranked?.[0];
+  const visible = ranked ? (showAll ? ranked : ranked.slice(0, INITIAL_VISIBLE)) : [];
+
+  const updateFilters = (next: TripFilters) => {
+    setSettled(true);
+    saveTrip({ ...trip, filters: next });
+  };
   const avgHours =
     top &&
     trip.travelers.reduce((a, t) => a + flightHours(t.originCode, top.cityCode), 0) /
@@ -171,7 +183,7 @@ export default function ResultsScreen() {
                 </ThemedText>
               ) : (
                 <ThemedText type="small" themeColor="textSecondary">
-                  Pricing 50 cities for everyone…
+                  {ranked ? 'No city matches your filters yet.' : 'Pricing 50 cities for everyone…'}
                 </ThemedText>
               )}
             </View>
@@ -195,6 +207,25 @@ export default function ResultsScreen() {
             {MODE_BLURB[mode]} Figures are per person: return flight, a shared mid-range room and
             food on the ground.
           </ThemedText>
+          <View style={styles.filterBar}>
+            <Button
+              title="Refine"
+              icon="sliders"
+              variant="secondary"
+              size="small"
+              onPress={() => setRefineOpen(true)}
+            />
+            <View style={styles.filterChips}>
+              {activeFilters.map((label) => (
+                <Chip key={label} label={label} tone="accent" />
+              ))}
+              {ranked && (
+                <ThemedText type="caption" themeColor="textSecondary">
+                  {ranked.length} of {results?.length} cities
+                </ThemedText>
+              )}
+            </View>
+          </View>
         </Animated.View>
 
         <View style={{ gap: Spacing.three }}>
@@ -223,15 +254,37 @@ export default function ResultsScreen() {
               />
             </Animated.View>
           ))}
-          {results && !showAll && results.length > INITIAL_VISIBLE && (
+          {ranked && ranked.length === 0 && (
+            <Animated.View entering={FadeIn.duration(Motion.duration.base)}>
+              <Card style={styles.empty}>
+                <ThemedText type="heading">Nothing fits all of that.</ThemedText>
+                <ThemedText type="default" themeColor="textSecondary">
+                  No city passes every filter for this group in {monthName(trip.month)}. Loosen the
+                  flight limit or drop a vibe.
+                </ThemedText>
+                <Button title="Refine" variant="secondary" onPress={() => setRefineOpen(true)} />
+              </Card>
+            </Animated.View>
+          )}
+          {ranked && !showAll && ranked.length > INITIAL_VISIBLE && (
             <Button
-              title={`Show all ${results.length} cities`}
+              title={`Show all ${ranked.length} cities`}
               variant="secondary"
               onPress={() => setShowAll(true)}
             />
           )}
         </View>
       </Animated.ScrollView>
+
+      <RefineSheet
+        visible={refineOpen}
+        onClose={() => setRefineOpen(false)}
+        month={trip.month}
+        filters={filters}
+        matchCount={ranked?.length ?? 0}
+        total={results?.length ?? 0}
+        onChange={updateFilters}
+      />
 
       {toast && (
         <Animated.View
@@ -273,6 +326,22 @@ const styles = StyleSheet.create({
   },
   blurb: {
     paddingHorizontal: Spacing.one,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  filterChips: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  empty: {
+    padding: Spacing.four,
+    gap: Spacing.three,
   },
   toast: {
     position: 'absolute',

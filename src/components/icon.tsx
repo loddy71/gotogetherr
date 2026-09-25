@@ -13,7 +13,8 @@ export type IconName =
   | 'plane'
   | 'sun'
   | 'rain'
-  | 'arrow-right';
+  | 'arrow-right'
+  | 'sliders';
 
 /** Stroke paths on a 24×24 grid. Drawn in-house; kept deliberately plain. */
 const PATHS: Record<IconName, string[]> = {
@@ -28,6 +29,7 @@ const PATHS: Record<IconName, string[]> = {
   sun: ['M12 2.5v2', 'M12 19.5v2', 'M2.5 12h2', 'M19.5 12h2', 'M5.3 5.3l1.4 1.4', 'M17.3 17.3l1.4 1.4', 'M5.3 18.7l1.4-1.4', 'M17.3 6.7l1.4-1.4'],
   rain: ['M7 16a4 4 0 01-.5-8A5.5 5.5 0 0117 7.5a3.5 3.5 0 01.5 7', 'M9 18l-1 2.5', 'M13 18l-1 2.5', 'M17 18l-1 2.5'],
   'arrow-right': ['M5 12h14', 'M13 6l6 6-6 6'],
+  sliders: ['M4 7h9', 'M17 7h3', 'M4 17h3', 'M11 17h9', 'M15 5v4', 'M9 15v4'],
 };
 
 export function Icon({

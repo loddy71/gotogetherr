@@ -14,9 +14,9 @@ One codebase, three targets: it runs as a web app and as a native **iOS**
 |---|---|---|
 | ![Home](docs/screenshots/01-home.png) | ![Results](docs/screenshots/03-results.png) | ![Detail](docs/screenshots/04-detail.png) |
 
-| Planning a trip | Trip invite | Dark mode |
+| Refine | Planning a trip | Dark mode |
 |---|---|---|
-| ![Form](docs/screenshots/02-form.png) | ![Join](docs/screenshots/05-join.png) | ![Dark](docs/screenshots/06-dark-results.png) |
+| ![Refine](docs/screenshots/09-refine-sheet.png) | ![Form](docs/screenshots/02-form.png) | ![Dark](docs/screenshots/06-dark-results.png) |
 
 ## Design
 
@@ -57,6 +57,17 @@ return flight (distance-calibrated, airport, month & destination season)
 Each destination also shows the expected weather for the trip month, with
 monsoon, hurricane, rainy-season and extreme-heat warnings, plus its hotel
 season and each traveler's time in the air.
+
+Then **Refine** narrows the list to places the group would actually go.
+Every change re-sorts the list behind the sheet live:
+
+- **Vibes:** beach, nightlife, culture, nature, or warm (25°C+ in the trip
+  month, from climate data). Pick several and a city must have them all.
+- **Longest flight for anyone:** ≤ 5, 8 or 12 hours in the air.
+- **Skip bad-weather cities** (on by default): monsoon, hurricane and
+  typhoon seasons, or 38°C+.
+
+Filters are saved with the trip and travel with its share link.
 
 Cities are then scored on a blend you control:
 

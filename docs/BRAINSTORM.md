@@ -115,8 +115,10 @@ The current direction is a **printed travel guide**:
 **v1.1 — the social loop:**
 - ✅ Shareable trip link (trip encoded in the URL, zero-backend `/join` flow);
   friends open it and drop in their own city + budget
-- Voting/vetoes on the shortlist ("no beach cities", "must have nightlife")
-- Vibe filters powered by the existing tags (beach, nightlife, food, nature…)
+- ✅ Refine: vibe filters (beach, nightlife, culture, nature, warm), a limit
+  on the longest flight anyone takes, and skipping monsoon/hurricane/
+  extreme-heat cities. Saved with the trip and carried in share links
+- Voting/vetoes on the shortlist, per person ("I'm out on Vegas")
 
 **v1.2 — real money:**
 - Live flight prices (stage 2 above), "book" deep links (affiliate revenue)

@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
 
+import { sanitizeFilters } from '@/lib/filters';
 import { newId } from '@/lib/format';
 import type { Trip } from '@/lib/types';
 
@@ -23,6 +24,7 @@ export function encodeTrip(trip: Trip): string {
       nights: trip.nights,
       travelers: trip.travelers,
       fairnessWeight: trip.fairnessWeight,
+      filters: trip.filters,
     },
   };
   return base64UrlEncode(JSON.stringify(payload));
@@ -40,6 +42,7 @@ export function decodeTrip(encoded: string): Trip | null {
       month: clampInt(t.month, 1, 12),
       nights: clampInt(t.nights, 1, 21),
       fairnessWeight: Math.min(1, Math.max(0, Number(t.fairnessWeight) || 0.5)),
+      filters: sanitizeFilters(t.filters),
       travelers: t.travelers
         .filter((tr) => tr && typeof tr.originCode === 'string' && tr.originCode)
         .map((tr, i) => ({

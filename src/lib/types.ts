@@ -22,7 +22,20 @@ export type Trip = {
   travelers: Traveler[];
   /** Ranking preference: 0 = cheapest total, 1 = fairest split. */
   fairnessWeight: number;
+  /** Narrowing applied to the ranking. Missing = defaults (see lib/filters). */
+  filters?: TripFilters;
   createdAt: number;
+};
+
+export type VibeKey = 'beach' | 'nightlife' | 'culture' | 'nature' | 'warm';
+
+export type TripFilters = {
+  /** Every selected vibe must match. */
+  vibes: VibeKey[];
+  /** Nobody flies longer than this (hours in the air); null = no limit. */
+  maxFlightHours: number | null;
+  /** Hide cities with a weather hazard in the trip month. */
+  avoidBadWeather: boolean;
 };
 
 /** One traveler's estimated cost of attending a given destination. */

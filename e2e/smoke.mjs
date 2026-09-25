@@ -125,6 +125,22 @@ try {
   await guest.waitForSelector('text=Best match', { timeout: 20000 });
   console.log('share/join OK');
 
+  // Refine: a beach-only filter must put a beach city first, live.
+  const BEACH_CITIES = ['Barcelona', 'Lisbon', 'Athens', 'Palma de Mallorca', 'Miami', 'Los Angeles', 'Cancún', 'Rio de Janeiro', 'Dubai', 'Cape Town', 'Bali (Denpasar)', 'Sydney'];
+  await page.getByRole('button', { name: 'Refine' }).first().click();
+  await page.getByText(/of \d+ cities match/).waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Beach', exact: true }).click();
+  await settle(page);
+  await page.screenshot({ path: shot('09-refine-sheet') });
+  await page.getByRole('button', { name: /^Show \d+ cities$/ }).click();
+  await page.getByText(/of \d+ cities match/).waitFor({ state: 'hidden' });
+  await page.waitForTimeout(600);
+  const topPick = (await page.getByRole('button', { name: /^1 / }).innerText()).split('\n')[2];
+  if (!BEACH_CITIES.includes(topPick)) throw new Error(`beach filter: top pick ${topPick} is not a beach city`);
+  await settle(page);
+  await page.screenshot({ path: shot('08-refined') });
+  console.log(`refine OK, beach top pick: ${topPick}`);
+
   // Dark mode: reuse the invite link so the same trip renders on dark stock.
   const darkContext = await browser.newContext({
     viewport: { width: 420, height: 900 },
