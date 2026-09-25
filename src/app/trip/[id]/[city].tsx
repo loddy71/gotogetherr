@@ -39,7 +39,9 @@ import { getCity, hotelSeasonFactor, seasonOf, weatherFor } from '@/lib/data/cit
 import { money, monthName } from '@/lib/format';
 import { flightHours } from '@/lib/pricing/mock-provider';
 import { rankDestinations } from '@/lib/scoring';
-import { useTrip } from '@/lib/store';
+import { toggleVeto, vetoedBy } from '@/lib/filters';
+import { haptic } from '@/lib/haptics';
+import { useTrip, useTrips } from '@/lib/store';
 import type { DestinationResult, Traveler, TravelerCost } from '@/lib/types';
 
 const percent = (n: number) => `${Math.round(n)}%`;
@@ -49,6 +51,7 @@ export default function DestinationScreen() {
   const insets = useSafeAreaInsets();
   const { id, city: cityCode } = useLocalSearchParams<{ id: string; city: string }>();
   const trip = useTrip(id);
+  const { saveTrip } = useTrips();
   const [result, setResult] = useState<DestinationResult | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -113,6 +116,12 @@ export default function DestinationScreen() {
             {city.blurb}
           </ThemedText>
           <View style={styles.chips}>
+            {vetoedBy(trip, city.code).length > 0 && (
+              <Chip
+                tone="accent"
+                label={`Ruled out by ${vetoedBy(trip, city.code).map((t) => t.name).join(', ')}`}
+              />
+            )}
             <Chip
               icon={weather.hazard && weather.hazard !== 'Extreme heat' ? 'rain' : 'sun'}
               label={`${monthName(trip.month)} · ${weather.highC}°C${weather.hazard ? ` · ${weather.hazard}` : ''}`}
@@ -171,6 +180,50 @@ export default function DestinationScreen() {
                   </Animated.View>
                 );
               })}
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(260).duration(Motion.duration.slow)}>
+              <Card style={styles.vetoCard}>
+                <View style={{ gap: 2 }}>
+                  <ThemedText type="label" themeColor="textSecondary">
+                    Anyone out?
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Tap a name to rule {city.name} out for them. It leaves the ranking for
+                    everyone; restore it from Refine.
+                  </ThemedText>
+                </View>
+                <View style={styles.vetoRow}>
+                  {trip.travelers.map((t, i) => {
+                    const out = t.vetoes?.includes(city.code) ?? false;
+                    return (
+                      <PressableScale
+                        key={t.id}
+                        feedback={false}
+                        accessibilityLabel={`${t.name} is ${out ? 'out' : 'in'} on ${city.name}`}
+                        accessibilityState={{ selected: out }}
+                        onPress={() => {
+                          haptic('selection');
+                          saveTrip(toggleVeto(trip, t.id, city.code));
+                        }}
+                        style={[
+                          styles.vetoPill,
+                          {
+                            backgroundColor: out ? theme.tint : theme.backgroundSelected,
+                          },
+                        ]}>
+                        <Avatar name={t.name} index={i} size={24} />
+                        <ThemedText type="smallBold" style={{ color: out ? '#FCFAF6' : theme.text }}>
+                          {t.name}
+                        </ThemedText>
+                        <ThemedText type="caption" style={{ color: out ? '#FCFAF6' : theme.textSecondary }}>
+                          {out ? 'Out' : 'In'}
+                        </ThemedText>
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              </Card>
             </Animated.View>
 
             <ThemedText type="small" themeColor="textSecondary" style={styles.footnote}>
@@ -324,4 +377,15 @@ const styles = StyleSheet.create({
   lineItem: { flexDirection: 'row', alignItems: 'center' },
   tick: { width: 7, height: 7, borderRadius: 2, marginRight: Spacing.two },
   footnote: { paddingHorizontal: Spacing.one },
+  vetoCard: { padding: Spacing.three, gap: Spacing.three },
+  vetoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  vetoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingLeft: 4,
+    paddingRight: Spacing.three,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
 });

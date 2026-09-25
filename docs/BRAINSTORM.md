@@ -118,7 +118,11 @@ The current direction is a **printed travel guide**:
 - ✅ Refine: vibe filters (beach, nightlife, culture, nature, warm), a limit
   on the longest flight anyone takes, and skipping monsoon/hurricane/
   extreme-heat cities. Saved with the trip and carried in share links
-- Voting/vetoes on the shortlist, per person ("I'm out on Vegas")
+- ✅ Per-person vetoes ("I'm out on Vegas"), carried in share links and
+  restorable from Refine
+- Merging friends' copies: today each shared copy diverges; a tiny sync
+  backend (or "send your changes back" links) would let vetoes and budgets
+  flow both ways
 
 **v1.2 — real money:**
 - Live flight prices (stage 2 above), "book" deep links (affiliate revenue)

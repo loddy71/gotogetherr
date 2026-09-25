@@ -94,6 +94,18 @@ try {
   await page.getByRole('button', { name: /^1 / }).click();
   await page.waitForSelector('text=Who pays what', { timeout: 15000 });
   console.log('detail OK');
+
+  // Veto: Friend 1 rules the top pick out; the ranking moves on without it.
+  const vetoedCity = first.split('\n')[2];
+  await page.getByRole('button', { name: `Friend 1 is in on ${vetoedCity}` }).click();
+  await page.getByRole('button', { name: `Friend 1 is out on ${vetoedCity}` }).waitFor();
+  await settle(page);
+  await page.screenshot({ path: shot('11-veto') });
+  await page.getByRole('button', { name: 'Back' }).filter({ visible: true }).first().click();
+  await page.getByText('1 ruled out').waitFor({ timeout: 20000 });
+  const afterVeto = (await page.getByRole('button', { name: /^1 / }).innerText()).split('\n')[2];
+  if (afterVeto === vetoedCity) throw new Error(`veto ignored: ${vetoedCity} still ranked first`);
+  console.log(`veto OK: ${vetoedCity} out, new top pick ${afterVeto}`);
   await settle(page);
   await page.screenshot({ path: shot('04-detail'), fullPage: true });
 
@@ -129,6 +141,9 @@ try {
   const BEACH_CITIES = ['Barcelona', 'Lisbon', 'Athens', 'Palma de Mallorca', 'Miami', 'Los Angeles', 'Cancún', 'Rio de Janeiro', 'Dubai', 'Cape Town', 'Bali (Denpasar)', 'Sydney'];
   await page.getByRole('button', { name: 'Refine' }).first().click();
   await page.getByText(/of \d+ cities match/).waitFor({ timeout: 5000 });
+  // Restore the city vetoed earlier.
+  await page.getByRole('button', { name: `Restore ${vetoedCity}` }).click();
+  await page.getByText('1 ruled out').waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: 'Beach', exact: true }).click();
   await settle(page);
   await page.screenshot({ path: shot('09-refine-sheet') });

@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
 
+import { CITIES } from '@/lib/data/cities';
 import { sanitizeFilters } from '@/lib/filters';
 import { newId } from '@/lib/format';
 import type { Trip } from '@/lib/types';
@@ -50,6 +51,9 @@ export function decodeTrip(encoded: string): Trip | null {
           name: String(tr.name || `Friend ${i + 1}`).slice(0, 40),
           originCode: tr.originCode,
           budget: tr.budget ? clampInt(tr.budget, 1, 1_000_000) : undefined,
+          vetoes: Array.isArray(tr.vetoes)
+            ? [...new Set(tr.vetoes.filter((c): c is string => typeof c === 'string' && isCityCode(c)))]
+            : undefined,
         })),
       createdAt: Date.now(),
     };
@@ -165,4 +169,9 @@ function utf8Decode(bytes: number[]): string {
     out += String.fromCodePoint(cp);
   }
   return out;
+}
+
+const CITY_CODES = new Set(CITIES.map((c) => c.code));
+function isCityCode(code: string): boolean {
+  return CITY_CODES.has(code);
 }

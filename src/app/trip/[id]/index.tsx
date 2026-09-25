@@ -28,7 +28,7 @@ import { WorldMap } from '@/components/world-map';
 import { MaxContentWidth, Motion, Radius, Spacing, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity } from '@/lib/data/cities';
-import { applyFilters, describeFilters, filtersOf } from '@/lib/filters';
+import { applyFilters, describeFilters, filtersOf, restoreCity, vetoedCities } from '@/lib/filters';
 import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { compareMonths, type MonthOption } from '@/lib/months';
@@ -134,6 +134,7 @@ export default function ResultsScreen() {
   const mode = modeForWeight(trip.fairnessWeight);
   const filters = filtersOf(trip);
   const activeFilters = describeFilters(filters);
+  const vetoed = vetoedCities(trip);
   const ranked = results ? applyFilters(trip, results) : null;
   const top = ranked?.[0];
   const visible = ranked ? (showAll ? ranked : ranked.slice(0, INITIAL_VISIBLE)) : [];
@@ -238,6 +239,7 @@ export default function ResultsScreen() {
               {activeFilters.map((label) => (
                 <Chip key={label} label={label} tone="accent" />
               ))}
+              {vetoed.length > 0 && <Chip label={`${vetoed.length} ruled out`} />}
               {ranked && (
                 <ThemedText type="caption" themeColor="textSecondary">
                   {ranked.length} of {results?.length} cities
@@ -323,6 +325,12 @@ export default function ResultsScreen() {
         matchCount={ranked?.length ?? 0}
         total={results?.length ?? 0}
         onChange={updateFilters}
+        vetoed={vetoed.map((v) => ({ cityCode: v.cityCode, names: v.by.map((t) => t.name) }))}
+        onRestore={(cityCode) => {
+          haptic('selection');
+          setSettled(true);
+          saveTrip(restoreCity(trip, cityCode));
+        }}
       />
 
       {toast && (

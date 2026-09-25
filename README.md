@@ -70,6 +70,10 @@ Every change re-sorts the list behind the sheet live:
 
 Filters are saved with the trip and travel with its share link.
 
+**Anyone out?** Any friend can veto a city from its detail screen ("I'm
+out on Vegas"). It drops out of the ranking, the map and the month chart for
+everyone, travels in the share link, and can be restored from Refine.
+
 **When's cheapest?** Under the filters, a 12-month chart shows what the best
 city would cost each person in every month, with the same mode and filters
 (the weather filters change month to month). Tap a month to preview it:

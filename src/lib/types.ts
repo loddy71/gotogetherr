@@ -11,6 +11,8 @@ export type Traveler = {
   originCode: string;
   /** Max total spend for the whole trip, in USD. 0 / undefined = no budget. */
   budget?: number;
+  /** City codes this traveler has ruled out ("I'm out on Vegas"). */
+  vetoes?: string[];
 };
 
 export type Trip = {

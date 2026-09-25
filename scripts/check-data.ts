@@ -12,7 +12,7 @@
  * docs/DATA_SOURCES.md. Re-verify and update them when refreshing the data.
  */
 import { averageHighC, CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
-import { hasVibe, passesFilters, sanitizeFilters } from '@/lib/filters';
+import { hasVibe, passesFilters, restoreCity, sanitizeFilters, toggleVeto, vetoedCities } from '@/lib/filters';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
 import type { Trip } from '@/lib/types';
 
@@ -115,6 +115,12 @@ check(
   !passesFilters(trip(10, ['LON', 'NYC']), 'TYO', { vibes: [], maxFlightHours: 8, avoidBadWeather: true }),
   'flight limit: New York–Tokyo exceeds 8 h',
 );
+const group = trip(10, ['LON', 'NYC']);
+const vetoed = toggleVeto(group, '0', 'LIS');
+check(!passesFilters(vetoed, 'LIS') && passesFilters(group, 'LIS'), 'veto: one veto removes a city');
+check(vetoedCities(vetoed).length === 1 && vetoedCities(vetoed)[0].by[0].id === '0', 'veto: listed with who');
+check(passesFilters(toggleVeto(vetoed, '0', 'LIS'), 'LIS'), 'veto: toggling again restores');
+check(passesFilters(restoreCity(toggleVeto(vetoed, '1', 'LIS'), 'LIS'), 'LIS'), 'veto: restore clears all');
 const clean = sanitizeFilters({ vibes: ['beach', 'nope', 'beach'], maxFlightHours: 7, avoidBadWeather: 'x' });
 check(
   JSON.stringify(clean) === JSON.stringify({ vibes: ['beach'], maxFlightHours: null, avoidBadWeather: true }),
