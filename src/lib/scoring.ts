@@ -1,5 +1,5 @@
 import { CITIES } from '@/lib/data/cities';
-import { getPriceProvider } from '@/lib/pricing';
+import { getPriceProvider, type PriceProvider } from '@/lib/pricing';
 import type { DestinationResult, TravelerCost, Trip } from '@/lib/types';
 
 /**
@@ -13,8 +13,10 @@ import type { DestinationResult, TravelerCost, Trip } from '@/lib/types';
  * `trip.fairnessWeight` (0..1) blends the two. Blowing someone's budget is
  * penalised multiplicatively so over-budget cities sink regardless of blend.
  */
-export async function rankDestinations(trip: Trip): Promise<DestinationResult[]> {
-  const provider = getPriceProvider();
+export async function rankDestinations(
+  trip: Trip,
+  provider: PriceProvider = getPriceProvider(),
+): Promise<DestinationResult[]> {
   const results: Omit<DestinationResult, 'score'>[] = [];
 
   for (const city of CITIES) {

@@ -13,7 +13,7 @@ and what it would take to replace them with live prices.
 | Return flight | Great-circle distance → banded per-km fare, × airport competitiveness (both ends), × global demand by month, × destination season, × a North America–East Asia premium, ± 8% stable route jitter | `src/lib/pricing/mock-provider.ts` |
 | Hotel | Annual-average mid-range double, **including taxes and mandatory fees**, × peak / low season for that city; shared two to a room | `src/lib/data/cities.ts` |
 | Daily costs | Meals, local transport and one paid sight, per person per day | `src/lib/data/cities.ts` |
-| Weather | Average daily high (January and July normals, interpolated), plus seasonal hazards: monsoon, hurricane and typhoon seasons, rainy seasons, extreme heat | `src/lib/data/cities.ts` |
+| Weather | Average daily high: January and July normals, interpolated along a cosine that peaks in late July (late January in the south), so August and September stay hot as they do in reality. Plus seasonal hazards: monsoon, hurricane and typhoon seasons, rainy seasons, extreme heat (38°C+) | `src/lib/data/cities.ts` |
 | Flight time | Great-circle distance ÷ 820 km/h + 0.6 h, i.e. time in the air on a direct routing | `src/lib/pricing/mock-provider.ts` |
 
 ## Calibration (September 2026)
@@ -70,9 +70,13 @@ Sydney, and others) follow the same sources and 2026 inflation.
   long-haul; routes to North and East Asia get a 20% premium. Everything else
   is distance-driven, so unusual monopoly routes will be off.
 - Flight time is time in the air on a direct routing; connections add hours.
-- Temperatures are interpolated from January and July normals: accurate to a
-  degree or two in temperate cities, less so in pre-monsoon Mumbai (May peaks
-  around 34 °C).
+- Temperatures are interpolated from January and July normals with a
+  seasonal lag. Checked against published normals for Dubai, London, Sydney,
+  Buenos Aires and New York: within about 2°C in every month. Less accurate
+  where the year isn't a simple wave, e.g. pre-monsoon Mumbai (May peaks
+  around 34°C).
+- The "Beach" filter only counts a beach city in beach weather (23°C+ that
+  month): Athens in January is not a beach trip.
 - Visa rules, which depend on each traveler's passport, are not modelled.
 
 ## Going live: the tools you'd need

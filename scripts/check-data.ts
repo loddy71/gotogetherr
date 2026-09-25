@@ -11,7 +11,7 @@
  * Benchmarks were gathered 2026-09-25; sources are listed in
  * docs/DATA_SOURCES.md. Re-verify and update them when refreshing the data.
  */
-import { CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
+import { averageHighC, CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
 import { hasVibe, passesFilters, sanitizeFilters } from '@/lib/filters';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
 import type { Trip } from '@/lib/types';
@@ -88,10 +88,17 @@ const bue = getCity('BUE');
 check(hotelSeasonFactor(bue, 7) < hotelSeasonFactor(bue, 1), 'BUE: July is southern winter');
 check(weatherFor(getCity('BOM'), 7).hazard === 'Monsoon', 'BOM: July must flag the monsoon');
 check(weatherFor(dxb, 7).hazard === 'Extreme heat', 'DXB: July must flag extreme heat');
+check(weatherFor(dxb, 9).hazard === 'Extreme heat', 'DXB: September is still ~39°C (normal)');
+check(weatherFor(dxb, 11).hazard === undefined, 'DXB: November is fine');
+const lon = getCity('LON');
+check(averageHighC(lon, 1) === 8 && averageHighC(lon, 7) === 24, 'LON: Jan/Jul must equal the stored normals');
+check(averageHighC(lon, 8) >= 23, 'LON: August stays warm (normal ~23.6°C)');
 
 // ── 4. Filters ───────────────────────────────────────────────────────────
 check(hasVibe(getCity('BCN'), 'beach', 7) && !hasVibe(getCity('PRG'), 'beach', 7), 'beach: BCN yes, PRG no');
 check(!hasVibe(getCity('STO'), 'beach', 7), 'beach: Stockholm has islands, not beaches');
+check(!hasVibe(getCity('ATH'), 'beach', 1), 'beach: Athens in January is not beach weather');
+check(hasVibe(getCity('SYD'), 'beach', 1), 'beach: Sydney in January is');
 check(hasVibe(getCity('SYD'), 'warm', 1) && !hasVibe(getCity('LON'), 'warm', 1), 'warm: Sydney in Jan, not London');
 const trip = (month: number, origins: string[]): Trip => ({
   id: 't',

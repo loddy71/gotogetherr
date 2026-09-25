@@ -14,9 +14,9 @@ One codebase, three targets: it runs as a web app and as a native **iOS**
 |---|---|---|
 | ![Home](docs/screenshots/01-home.png) | ![Results](docs/screenshots/03-results.png) | ![Detail](docs/screenshots/04-detail.png) |
 
-| Refine | Planning a trip | Dark mode |
+| Refine | When's cheapest? | Dark mode |
 |---|---|---|
-| ![Refine](docs/screenshots/09-refine-sheet.png) | ![Form](docs/screenshots/02-form.png) | ![Dark](docs/screenshots/06-dark-results.png) |
+| ![Refine](docs/screenshots/09-refine-sheet.png) | ![Months](docs/screenshots/10-months.png) | ![Dark](docs/screenshots/06-dark-results.png) |
 
 ## Design
 
@@ -61,13 +61,20 @@ season and each traveler's time in the air.
 Then **Refine** narrows the list to places the group would actually go.
 Every change re-sorts the list behind the sheet live:
 
-- **Vibes:** beach, nightlife, culture, nature, or warm (25°C+ in the trip
-  month, from climate data). Pick several and a city must have them all.
+- **Vibes:** beach (only in beach weather, 23°C+ that month), nightlife,
+  culture, nature, or warm (25°C+ in the trip month, from climate data).
+  Pick several and a city must have them all.
 - **Longest flight for anyone:** ≤ 5, 8 or 12 hours in the air.
 - **Skip bad-weather cities** (on by default): monsoon, hurricane and
   typhoon seasons, or 38°C+.
 
 Filters are saved with the trip and travel with its share link.
+
+**When's cheapest?** Under the filters, a 12-month chart shows what the best
+city would cost each person in every month, with the same mode and filters
+(the weather filters change month to month). Tap a month to preview it:
+"September: Athens, $1,200 each, $137 less than October". Tap **Plan for
+September** to move the trip.
 
 Cities are then scored on a blend you control:
 

@@ -16,6 +16,7 @@ import { AvatarStack } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
+import { MonthChart } from '@/components/month-chart';
 import { RefineSheet } from '@/components/refine-sheet';
 import { ResultCard } from '@/components/result-card';
 import { HEADER_BAR_HEIGHT, HeaderIconButton, ScreenHeader } from '@/components/screen-header';
@@ -30,6 +31,7 @@ import { getCity } from '@/lib/data/cities';
 import { applyFilters, describeFilters, filtersOf } from '@/lib/filters';
 import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { compareMonths, type MonthOption } from '@/lib/months';
 import { flightHours } from '@/lib/pricing/mock-provider';
 import { rankDestinations } from '@/lib/scoring';
 import { shareTrip } from '@/lib/share';
@@ -67,6 +69,7 @@ export default function ResultsScreen() {
   const [settled, setSettled] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
+  const [months, setMonths] = useState<{ key: string; options: MonthOption[] } | null>(null);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -83,6 +86,22 @@ export default function ResultsScreen() {
       cancelled = true;
     };
   }, [trip]);
+
+  // The month comparison depends on everything except the month itself.
+  const monthsKey = trip
+    ? JSON.stringify([trip.travelers, trip.nights, trip.fairnessWeight, trip.filters])
+    : '';
+  useEffect(() => {
+    if (!trip) return;
+    let cancelled = false;
+    compareMonths(trip).then((options) => {
+      if (!cancelled) setMonths({ key: monthsKey, options });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on monthsKey on purpose
+  }, [monthsKey]);
 
   useEffect(() => {
     if (!toast) return;
@@ -228,6 +247,26 @@ export default function ResultsScreen() {
           </View>
         </Animated.View>
 
+        {months && (
+          <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)}>
+            <Card style={styles.monthsCard}>
+              <ThemedText type="label" themeColor="textSecondary">
+                When&apos;s cheapest?
+              </ThemedText>
+              <MonthChart
+                options={months.options}
+                month={trip.month}
+                stale={months.key !== monthsKey}
+                onPlan={(month) => {
+                  haptic('success');
+                  setSettled(true);
+                  saveTrip({ ...trip, month });
+                }}
+              />
+            </Card>
+          </Animated.View>
+        )}
+
         <View style={{ gap: Spacing.three }}>
           {!results &&
             Array.from({ length: 4 }, (_, i) => (
@@ -341,6 +380,10 @@ const styles = StyleSheet.create({
   },
   empty: {
     padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  monthsCard: {
+    padding: Spacing.three,
     gap: Spacing.three,
   },
   toast: {

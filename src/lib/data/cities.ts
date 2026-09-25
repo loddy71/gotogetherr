@@ -130,15 +130,23 @@ export function hotelSeasonFactor(city: City, month: number): number {
 }
 
 /**
- * Average daily high for a month, interpolated along a cosine between the
- * January and July normals. Accurate to a degree or two for most cities;
- * works for both hemispheres because the sign of the swing flips.
+ * Seasonal lag: temperatures peak around late July (late January south of
+ * the equator), not mid-month, so August and September stay hot.
+ */
+const PEAK_MONTH = 7.4;
+const LAG_SCALE = 1 / Math.cos((2 * Math.PI * (PEAK_MONTH - 7)) / 12);
+
+/**
+ * Average daily high for a month, interpolated along a lagged cosine that
+ * passes exactly through the January and July normals. Accurate to a degree
+ * or two for most cities; works for both hemispheres because the sign of the
+ * swing flips.
  */
 export function averageHighC(city: City, month: number): number {
   const [jan, jul] = city.highC;
   const mid = (jan + jul) / 2;
-  const amp = (jul - jan) / 2;
-  return Math.round(mid + amp * Math.cos((2 * Math.PI * (month - 7)) / 12));
+  const amp = ((jul - jan) / 2) * LAG_SCALE;
+  return Math.round(mid + amp * Math.cos((2 * Math.PI * (month - PEAK_MONTH)) / 12));
 }
 
 export type WeatherNote = { highC: number; hazard?: string };

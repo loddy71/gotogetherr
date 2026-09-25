@@ -141,6 +141,27 @@ try {
   await page.screenshot({ path: shot('08-refined') });
   console.log(`refine OK, beach top pick: ${topPick}`);
 
+  // When's cheapest: preview the cheapest month, then re-plan the trip for it.
+  await page.getByText("When's cheapest?").waitFor({ timeout: 20000 });
+  const cheapestColumn = page.getByRole('button', { name: /, cheapest$/ });
+  const cheapestLabel = await cheapestColumn.getAttribute('aria-label');
+  const cheapestMonthName = cheapestLabel.split(':')[0];
+  await cheapestColumn.scrollIntoViewIfNeeded();
+  await cheapestColumn.click();
+  const meta = await page.getByText(/^\w+ · \d+ nights · \d+ flying in$/).first().innerText();
+  const currentMonthName = meta.split(' · ')[0];
+  if (cheapestMonthName !== currentMonthName) {
+    const plan = page.getByRole('button', { name: `Plan for ${cheapestMonthName}` });
+    await plan.waitFor({ timeout: 5000 });
+    await settle(page);
+    await page.screenshot({ path: shot('10-months') });
+    await plan.click();
+    await page
+      .getByText(new RegExp(`^${cheapestMonthName} · \\d+ nights · \\d+ flying in$`))
+      .waitFor({ timeout: 20000 });
+  }
+  console.log(`months OK, cheapest: ${cheapestLabel}`);
+
   // Dark mode: reuse the invite link so the same trip renders on dark stock.
   const darkContext = await browser.newContext({
     viewport: { width: 420, height: 900 },

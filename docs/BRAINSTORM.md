@@ -122,7 +122,10 @@ The current direction is a **printed travel guide**:
 
 **v1.2 — real money:**
 - Live flight prices (stage 2 above), "book" deep links (affiliate revenue)
-- Date-range search: "cheapest weekend in March" instead of a fixed month
+- ✅ "When's cheapest?": the best city's per-person cost for each month of
+  the year, with tap-to-preview and one-tap re-planning
+- Date-range search down to the week ("cheapest weekend in March"), which
+  needs live fares
 - Multi-currency display (quotes stay USD internally, FX at render time)
 
 **v2 — the moat:**
