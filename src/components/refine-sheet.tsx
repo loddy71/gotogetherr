@@ -89,7 +89,8 @@ export function RefineSheet({
             ))}
           </View>
           <ThemedText type="caption" themeColor="textSecondary">
-            Pick several and a city has to have all of them.
+            Pick several and a city has to have all of them. Beach cities only count in
+            beach weather (23°C+ that month).
           </ThemedText>
         </View>
 

@@ -26,6 +26,8 @@ export const Colors = {
     tint: '#A33F27',
     /** Map land dots. */
     land: '#D9D2C2',
+    /** Default chart columns (≥ 3:1 on the card surface). */
+    chartMark: '#968C7E',
     scrim: 'rgba(28, 25, 22, 0.38)',
   },
   dark: {
@@ -39,6 +41,7 @@ export const Colors = {
     textSecondary: '#9C9386',
     tint: '#DB7254',
     land: '#39332B',
+    chartMark: '#6E665A',
     scrim: 'rgba(0, 0, 0, 0.55)',
   },
 } as const;

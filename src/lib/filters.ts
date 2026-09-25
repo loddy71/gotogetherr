@@ -25,6 +25,8 @@ export const VIBES: { key: VibeKey; label: string; tags?: string[] }[] = [
 ];
 
 export const WARM_THRESHOLD_C = 25;
+/** A beach city only counts as a beach trip in beach weather. */
+export const BEACH_THRESHOLD_C = 23;
 
 /** Offered limits on the longest flight anyone takes, in hours. */
 export const FLIGHT_LIMITS = [5, 8, 12] as const;
@@ -42,7 +44,9 @@ export function filtersOf(trip: Trip): TripFilters {
 export function hasVibe(city: City, vibe: VibeKey, month: number): boolean {
   if (vibe === 'warm') return averageHighC(city, month) >= WARM_THRESHOLD_C;
   const tags = VIBES.find((v) => v.key === vibe)?.tags ?? [];
-  return city.vibes.some((t) => tags.includes(t));
+  const tagged = city.vibes.some((t) => tags.includes(t));
+  if (vibe === 'beach') return tagged && averageHighC(city, month) >= BEACH_THRESHOLD_C;
+  return tagged;
 }
 
 export function longestFlightHours(trip: Trip, cityCode: string): number {
