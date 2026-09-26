@@ -17,6 +17,8 @@ Commands:
   refresh steps in `docs/DATA_SOURCES.md`)
 - `npm run build:web` then `npm run e2e` — Playwright smoke test of the full
   user flow against the static export
+- Dev server: `npx expo start --port 8081`, web at http://localhost:8081.
+  `.claude/launch.json` lets the Claude desktop app's preview start it.
 
 
 Git workflow (local sessions):
