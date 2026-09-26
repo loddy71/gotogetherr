@@ -1,6 +1,6 @@
-import { averageHighC, getCity, weatherFor, type City } from '@/lib/data/cities';
+import { averageHighC, CITIES, getCity, weatherFor, type City } from '@/lib/data/cities';
 import { flightHours } from '@/lib/pricing/mock-provider';
-import type { DestinationResult, Trip, TripFilters, VibeKey } from '@/lib/types';
+import type { DestinationResult, Traveler, Trip, TripFilters, VibeKey } from '@/lib/types';
 
 /**
  * Narrowing the ranking to cities the group would actually go to. Vibes map
@@ -53,7 +53,47 @@ export function longestFlightHours(trip: Trip, cityCode: string): number {
   return Math.max(0, ...trip.travelers.map((t) => flightHours(t.originCode, cityCode)));
 }
 
+/** Travelers who have ruled this city out. */
+export function vetoedBy(trip: Trip, cityCode: string): Traveler[] {
+  return trip.travelers.filter((t) => t.vetoes?.includes(cityCode));
+}
+
+/** Every vetoed city, in dataset order, with who ruled it out. */
+export function vetoedCities(trip: Trip): { cityCode: string; by: Traveler[] }[] {
+  return CITIES.map((c) => ({ cityCode: c.code, by: vetoedBy(trip, c.code) })).filter(
+    (v) => v.by.length > 0,
+  );
+}
+
+/** Toggle one traveler's veto on a city; returns the updated trip. */
+export function toggleVeto(trip: Trip, travelerId: string, cityCode: string): Trip {
+  return {
+    ...trip,
+    travelers: trip.travelers.map((t) => {
+      if (t.id !== travelerId) return t;
+      const vetoes = t.vetoes ?? [];
+      return {
+        ...t,
+        vetoes: vetoes.includes(cityCode)
+          ? vetoes.filter((c) => c !== cityCode)
+          : [...vetoes, cityCode],
+      };
+    }),
+  };
+}
+
+/** Clear every veto on a city. */
+export function restoreCity(trip: Trip, cityCode: string): Trip {
+  return {
+    ...trip,
+    travelers: trip.travelers.map((t) =>
+      t.vetoes?.includes(cityCode) ? { ...t, vetoes: t.vetoes.filter((c) => c !== cityCode) } : t,
+    ),
+  };
+}
+
 export function passesFilters(trip: Trip, cityCode: string, filters = filtersOf(trip)): boolean {
+  if (vetoedBy(trip, cityCode).length > 0) return false;
   const city = getCity(cityCode);
   if (!filters.vibes.every((v) => hasVibe(city, v, trip.month))) return false;
   if (filters.maxFlightHours !== null && longestFlightHours(trip, cityCode) > filters.maxFlightHours) {

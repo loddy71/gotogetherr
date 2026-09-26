@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Toggle } from '@/components/toggle';
 import { Motion, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { getCity } from '@/lib/data/cities';
 import { DEFAULT_FILTERS, FLIGHT_LIMITS, VIBES } from '@/lib/filters';
 import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -22,6 +23,9 @@ type RefineSheetProps = {
   matchCount: number;
   total: number;
   onChange: (filters: TripFilters) => void;
+  /** Cities travelers have ruled out, with who did it. */
+  vetoed: { cityCode: string; names: string[] }[];
+  onRestore: (cityCode: string) => void;
 };
 
 type FlightOption = 'any' | `${(typeof FLIGHT_LIMITS)[number]}`;
@@ -38,6 +42,8 @@ export function RefineSheet({
   matchCount,
   total,
   onChange,
+  vetoed,
+  onRestore,
 }: RefineSheetProps) {
   const theme = useTheme();
 
@@ -127,6 +133,35 @@ export function RefineSheet({
           />
         </View>
 
+        {vetoed.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText type="label" themeColor="textSecondary">
+              Ruled out
+            </ThemedText>
+            {vetoed.map((v) => {
+              const city = getCity(v.cityCode);
+              return (
+                <View key={v.cityCode} style={styles.vetoRow}>
+                  <Text style={styles.flag}>{city.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="defaultBold">{city.name}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      Out for {v.names.join(', ')}
+                    </ThemedText>
+                  </View>
+                  <Button
+                    title="Restore"
+                    variant="secondary"
+                    size="small"
+                    accessibilityLabel={`Restore ${city.name}`}
+                    onPress={() => onRestore(v.cityCode)}
+                  />
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         <Button title={`Show ${matchCount} cities`} onPress={onClose} />
       </ScrollView>
     </Sheet>
@@ -187,6 +222,14 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: Radius.pill,
     borderWidth: 1,
+  },
+  vetoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  flag: {
+    fontSize: 20,
   },
   switchRow: {
     flexDirection: 'row',

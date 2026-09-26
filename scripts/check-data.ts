@@ -12,7 +12,8 @@
  * docs/DATA_SOURCES.md. Re-verify and update them when refreshing the data.
  */
 import { averageHighC, CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/lib/data/cities';
-import { hasVibe, passesFilters, sanitizeFilters } from '@/lib/filters';
+import { hasVibe, passesFilters, restoreCity, sanitizeFilters, toggleVeto, vetoedCities } from '@/lib/filters';
+import { flightLinks, hotelLink, isoDate, suggestedDates } from '@/lib/booking';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
 import type { Trip } from '@/lib/types';
 
@@ -94,6 +95,22 @@ const lon = getCity('LON');
 check(averageHighC(lon, 1) === 8 && averageHighC(lon, 7) === 24, 'LON: Jan/Jul must equal the stored normals');
 check(averageHighC(lon, 8) >= 23, 'LON: August stays warm (normal ~23.6°C)');
 
+// ── Booking hand-off ─────────────────────────────────────────────────────
+{
+  const today = new Date(2026, 8, 25);
+  const oct = suggestedDates(10, 3, today);
+  check(oct.depart.getDay() === 5 && isoDate(oct.depart) === '2026-10-09', 'dates: second Friday of Oct 2026');
+  check(isoDate(oct.return) === '2026-10-12', 'dates: return = depart + nights');
+  check(suggestedDates(9, 2, today).depart.getFullYear() === 2027, 'dates: a passed month rolls to next year');
+  const kayak = flightLinks('LON', 'NYC', oct)[0].url;
+  check(kayak === 'https://www.kayak.com/flights/LON-NYC/2026-10-09/2026-10-12/', `kayak url: ${kayak}`);
+  const hotel = new URL(hotelLink('BCN', oct, 3).url);
+  check(
+    hotel.searchParams.get('group_adults') === '3' && hotel.searchParams.get('no_rooms') === '2',
+    'hotel link: 3 adults need 2 rooms',
+  );
+}
+
 // ── 4. Filters ───────────────────────────────────────────────────────────
 check(hasVibe(getCity('BCN'), 'beach', 7) && !hasVibe(getCity('PRG'), 'beach', 7), 'beach: BCN yes, PRG no');
 check(!hasVibe(getCity('STO'), 'beach', 7), 'beach: Stockholm has islands, not beaches');
@@ -115,6 +132,12 @@ check(
   !passesFilters(trip(10, ['LON', 'NYC']), 'TYO', { vibes: [], maxFlightHours: 8, avoidBadWeather: true }),
   'flight limit: New York–Tokyo exceeds 8 h',
 );
+const group = trip(10, ['LON', 'NYC']);
+const vetoed = toggleVeto(group, '0', 'LIS');
+check(!passesFilters(vetoed, 'LIS') && passesFilters(group, 'LIS'), 'veto: one veto removes a city');
+check(vetoedCities(vetoed).length === 1 && vetoedCities(vetoed)[0].by[0].id === '0', 'veto: listed with who');
+check(passesFilters(toggleVeto(vetoed, '0', 'LIS'), 'LIS'), 'veto: toggling again restores');
+check(passesFilters(restoreCity(toggleVeto(vetoed, '1', 'LIS'), 'LIS'), 'LIS'), 'veto: restore clears all');
 const clean = sanitizeFilters({ vibes: ['beach', 'nope', 'beach'], maxFlightHours: 7, avoidBadWeather: 'x' });
 check(
   JSON.stringify(clean) === JSON.stringify({ vibes: ['beach'], maxFlightHours: null, avoidBadWeather: true }),

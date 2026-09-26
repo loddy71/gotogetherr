@@ -118,10 +118,17 @@ The current direction is a **printed travel guide**:
 - ✅ Refine: vibe filters (beach, nightlife, culture, nature, warm), a limit
   on the longest flight anyone takes, and skipping monsoon/hurricane/
   extreme-heat cities. Saved with the trip and carried in share links
-- Voting/vetoes on the shortlist, per person ("I'm out on Vegas")
+- ✅ Per-person vetoes ("I'm out on Vegas"), carried in share links and
+  restorable from Refine
+- Merging friends' copies: today each shared copy diverges; a tiny sync
+  backend (or "send your changes back" links) would let vetoes and budgets
+  flow both ways
 
 **v1.2 — real money:**
-- Live flight prices (stage 2 above), "book" deep links (affiliate revenue)
+- ✅ "Check live prices": suggested dates plus Kayak/Google flight and
+  Booking.com hotel searches per destination (plain links today)
+- Live flight prices (stage 2 above); switch the hand-off links to
+  affiliate links for revenue
 - ✅ "When's cheapest?": the best city's per-person cost for each month of
   the year, with tap-to-preview and one-tap re-planning
 - Date-range search down to the week ("cheapest weekend in March"), which
