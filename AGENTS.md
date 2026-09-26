@@ -18,3 +18,15 @@ Commands:
 - `npm run build:web` then `npm run e2e` — Playwright smoke test of the full
   user flow against the static export
 
+
+Git workflow (local sessions):
+
+- Work on a feature branch, never directly on `main`. Open a PR to merge.
+- Commit at each logical step with a clear message. Don't batch a whole
+  session into one commit.
+- `scripts/auto-commit.sh` runs as a Stop hook (`.claude/settings.json`). It
+  commits anything left uncommitted as a "WIP: auto-commit" and pushes the
+  branch at the end of every turn. It skips `main`, cloud sessions, and
+  in-progress merges and rebases. Set `AUTO_COMMIT=0` to turn it off.
+- Never commit secrets. API keys go in `.env.local` (gitignored) or the
+  environment, never in tracked files.

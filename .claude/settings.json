@@ -1,5 +1,19 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/auto-commit.sh\"",
+            "timeout": 60,
+            "statusMessage": "Committing and pushing to GitHub…"
+          }
+        ]
+      }
+    ]
   }
 }
