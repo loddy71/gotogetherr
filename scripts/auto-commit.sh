@@ -27,6 +27,9 @@ for marker in MERGE_HEAD rebase-merge rebase-apply CHERRY_PICK_HEAD; do
 done
 
 git add -A
+# Never commit a stray nested git repo (e.g. an old clone) as a gitlink.
+git diff --cached --diff-filter=AM --raw | awk '$2 == "160000" { print $NF }' |
+  while IFS= read -r path; do git reset --quiet -- "$path"; done
 if ! git diff --cached --quiet; then
   files=$(git diff --cached --name-only)
   count=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
