@@ -65,7 +65,7 @@ export function decodeTrip(encoded: string): Trip | null {
 export function tripShareUrl(trip: Trip): string {
   const base =
     Platform.OS === 'web' && typeof window !== 'undefined'
-      ? window.location.origin
+      ? window.location.origin + (process.env.EXPO_PUBLIC_BASE_URL ?? '')
       : (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://gotogether.example');
   return `${base}/join?d=${encodeTrip(trip)}`;
 }

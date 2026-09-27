@@ -136,7 +136,9 @@ npx expo start
 
 To ship a standalone iOS app, use [EAS Build](https://docs.expo.dev/build/introduction/):
 `npx eas build -p ios`. The web app is a static export (`npm run build:web` →
-`dist/`) deployable to any static host.
+`dist/`) deployable to any static host. Every push to `main` deploys it to
+GitHub Pages at https://loddy71.github.io/gotogetherr/
+(`.github/workflows/pages.yml`).
 
 ## Development
 
