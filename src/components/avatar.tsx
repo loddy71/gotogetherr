@@ -36,7 +36,8 @@ export function AvatarStack({ names, size = 28 }: { names: string[]; size?: numb
         <View
           key={`${name}-${i}`}
           style={{
-            marginLeft: i === 0 ? 0 : -size * 0.28,
+            // Small overlap so every pair of initials stays readable.
+            marginLeft: i === 0 ? 0 : -size * 0.14,
             borderRadius: size,
             borderWidth: 2,
             borderColor: theme.card,

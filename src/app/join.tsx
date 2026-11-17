@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { PageTitle } from '@/components/page-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
+import { Flag } from '@/components/flag';
 import { MaxContentWidth, Motion, Spacing, travelerColor } from '@/constants/theme';
 import { useEntrance } from '@/hooks/use-entrance';
 import { useHydrated } from '@/hooks/use-hydrated';
@@ -90,7 +91,7 @@ export default function JoinScreen() {
                   <ThemedText type="defaultBold" style={{ flex: 1 }}>
                     {t.name}
                   </ThemedText>
-                  <Text style={styles.flag}>{city.flag}</Text>
+                  <Flag emoji={city.flag} />
                   <ThemedText type="small" themeColor="textSecondary">
                     {city.name}
                   </ThemedText>
@@ -126,5 +127,4 @@ const styles = StyleSheet.create({
   },
   list: { padding: Spacing.three, gap: Spacing.three },
   travelerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  flag: { fontSize: 17 },
 });

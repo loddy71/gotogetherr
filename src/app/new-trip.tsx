@@ -259,12 +259,12 @@ function MonthCell({ label, selected, onPress }: { label: string; selected: bool
         style={[
           styles.monthPill,
           {
-            backgroundColor: selected ? theme.text : 'transparent',
+            backgroundColor: selected ? theme.tint : 'transparent',
             transitionProperty: 'backgroundColor',
             transitionDuration: Motion.duration.base,
           },
         ]}>
-        <ThemedText type="smallBold" style={{ color: selected ? theme.background : theme.textSecondary }}>
+        <ThemedText type="smallBold" style={{ color: selected ? theme.onTint : theme.textSecondary }}>
           {label}
         </ThemedText>
       </Animated.View>

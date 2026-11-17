@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AnimatedNumber } from '@/components/animated-number';
 import { Card } from '@/components/card';
@@ -6,6 +6,7 @@ import { Chip } from '@/components/chip';
 import { CostBar } from '@/components/cost-bar';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
+import { Flag } from '@/components/flag';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity, weatherFor } from '@/lib/data/cities';
@@ -43,7 +44,7 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
               <ThemedText type="defaultBold" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {city.name}
               </ThemedText>
-              <Text style={styles.flag}>{city.flag}</Text>
+              <Flag emoji={city.flag} width={18} />
             </View>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
               {city.country} · {city.vibes.slice(0, 2).join(', ')}
@@ -52,7 +53,7 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
           <View style={styles.price}>
             <AnimatedNumber type="price" value={result.avgCost} format={money} />
             <ThemedText type="caption" themeColor="textSecondary">
-              each
+              each, est.
             </ThemedText>
           </View>
         </View>
@@ -107,9 +108,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  flag: {
-    fontSize: 15,
   },
   price: {
     alignItems: 'flex-end',

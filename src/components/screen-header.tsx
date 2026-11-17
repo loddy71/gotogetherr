@@ -45,7 +45,8 @@ export function ScreenHeader({
   const router = useRouter();
 
   const barStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [collapseAt - 40, collapseAt], [0, 1], Extrapolation.CLAMP),
+    // The bar fills in as soon as content passes under the buttons.
+    opacity: interpolate(scrollY.value, [0, 24], [0, 1], Extrapolation.CLAMP),
   }));
   const titleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [collapseAt - 20, collapseAt + 10], [0, 1], Extrapolation.CLAMP),

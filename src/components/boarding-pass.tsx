@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   FadeIn,
@@ -9,6 +9,7 @@ import Animated, {
 
 import { AnimatedNumber } from '@/components/animated-number';
 import { Avatar } from '@/components/avatar';
+import { BrandMark } from '@/components/brand-mark';
 import { Card } from '@/components/card';
 import { StackedBar } from '@/components/cost-bar';
 import { DotLeader } from '@/components/dot-leader';
@@ -32,6 +33,7 @@ export function BoardingPass({
   traveler,
   cost,
   index,
+  count,
   destinationCode,
   month,
   nights,
@@ -41,6 +43,8 @@ export function BoardingPass({
   traveler: Traveler;
   cost: TravelerCost;
   index: number;
+  /** Passes in the stack, for "Pass 1 of 3". */
+  count: number;
   destinationCode: string;
   month: number;
   nights: number;
@@ -52,6 +56,9 @@ export function BoardingPass({
   const origin = getCity(traveler.originCode);
   const destination = getCity(destinationCode);
   const dates = formatDateRange(suggestedDates(month, nights));
+  // Wide passes tear off sideways: stub on the right behind a vertical perforation.
+  const [width, setWidth] = useState(0);
+  const landscape = width >= 540;
 
   const rotation = useSharedValue(open ? 1 : 0);
   useEffect(() => {
@@ -68,63 +75,75 @@ export function BoardingPass({
       feedback="selection"
       accessibilityLabel={`${traveler.name}: ${cost.isHome ? 'lives here' : `from ${origin.name}`}, ${money(cost.total)}`}
       accessibilityState={{ expanded: open }}>
-      <Card style={styles.pass}>
+      <Card style={styles.pass} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        {/* Carrier strip: the mark and the pass number, then the traveler's livery. */}
+        <View style={styles.carrier}>
+          <BrandMark size={14} dotColor="#FFFFFF" ringColor={CARRIER} />
+          <ThemedText type="field" style={styles.carrierText}>
+            GoTogether · Boarding pass
+          </ThemedText>
+          <ThemedText type="field" style={[styles.carrierText, { marginLeft: 'auto' }]}>
+            {index + 1} of {count}
+          </ThemedText>
+        </View>
         <View style={[styles.band, { backgroundColor: livery }]} />
 
-        <View style={styles.body}>
-          <View style={styles.holder}>
-            <Avatar name={traveler.name} index={index} size={26} />
-            <ThemedText type="defaultBold" numberOfLines={1} style={{ flex: 1 }}>
-              {traveler.name}
-            </ThemedText>
-            <ThemedText type="field" themeColor="textSecondary">
-              Pass {index + 1}
-            </ThemedText>
-          </View>
-
-          <View style={styles.route}>
-            <Endpoint label="From" code={origin.code} name={origin.name} />
-            <View style={styles.track}>
-              <View style={[styles.trackLine, { backgroundColor: livery }]} />
-              <Icon name="plane" size={18} color={livery} strokeWidth={1.6} />
-              <View style={[styles.trackLine, { backgroundColor: livery }]} />
+        <View style={landscape ? styles.landscape : undefined}>
+          <View style={[styles.body, landscape && { flex: 1 }]}>
+            <View style={styles.holder}>
+              <Avatar name={traveler.name} index={index} size={26} />
+              <ThemedText type="defaultBold" numberOfLines={1} style={{ flex: 1 }}>
+                {traveler.name}
+              </ThemedText>
             </View>
-            <Endpoint label="To" code={destination.code} name={destination.name} align="right" />
+
+            <View style={styles.route}>
+              <Endpoint label="From" code={origin.code} name={origin.name} />
+              <View style={styles.track}>
+                <View style={[styles.trackLine, { backgroundColor: livery }]} />
+                <Icon name="plane" size={18} color={livery} strokeWidth={1.6} />
+                <View style={[styles.trackLine, { backgroundColor: livery }]} />
+              </View>
+              <Endpoint label="To" code={destination.code} name={destination.name} align="right" />
+            </View>
+
+            <View style={[styles.fields, { borderColor: theme.border }]}>
+              <Field
+                label="Flight"
+                value={cost.isHome ? 'Lives here' : formatHours(flightHours(origin.code, destination.code))}
+              />
+              <View style={[styles.rule, { backgroundColor: theme.border }]} />
+              <Field label="Nights" value={String(nights)} />
+              <View style={[styles.rule, { backgroundColor: theme.border }]} />
+              <Field label="Dates" value={dates} grow />
+            </View>
           </View>
 
-          <View style={styles.fields}>
-            <Field
-              label="Flight"
-              value={cost.isHome ? 'Lives here' : formatHours(flightHours(origin.code, destination.code))}
-            />
-            <Field label="Nights" value={String(nights)} />
-            <Field label="Dates" value={dates} grow />
-          </View>
-        </View>
+          {/* Opened sideways, the stub's bottom edge is no longer the pass edge: no notch. */}
+          <Perforation vertical={landscape} edgeNotch={!(landscape && open)} />
 
-        <Perforation />
-
-        <View style={styles.stub}>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="field" themeColor="textSecondary">
-              Pays
-            </ThemedText>
-            {traveler.budget ? (
-              <ThemedText type="caption" style={{ color: cost.overBudget ? theme.danger : theme.success }}>
-                {cost.overBudget
-                  ? `${money(cost.total - traveler.budget)} over budget`
-                  : `${money(traveler.budget - cost.total)} under budget`}
+          <View style={landscape ? styles.stubSide : styles.stub}>
+            <View style={landscape ? undefined : { flex: 1 }}>
+              <ThemedText type="field" themeColor="textSecondary">
+                Pays · estimate
               </ThemedText>
-            ) : (
-              <ThemedText type="caption" themeColor="textSecondary">
-                Flight, room share, food
-              </ThemedText>
-            )}
+              {traveler.budget ? (
+                <ThemedText type="caption" style={{ color: cost.overBudget ? theme.danger : theme.success }}>
+                  {cost.overBudget
+                    ? `${money(cost.total - traveler.budget)} over budget`
+                    : `${money(traveler.budget - cost.total)} under budget`}
+                </ThemedText>
+              ) : (
+                <ThemedText type="caption" themeColor="textSecondary">
+                  Flight, room share, food
+                </ThemedText>
+              )}
+            </View>
+            <AnimatedNumber type="priceLarge" value={cost.total} format={money} fromZero />
+            <Animated.View style={chevronStyle}>
+              <Icon name="chevron-down" size={18} color={theme.textSecondary} />
+            </Animated.View>
           </View>
-          <AnimatedNumber type="priceLarge" value={cost.total} format={money} fromZero />
-          <Animated.View style={chevronStyle}>
-            <Icon name="chevron-down" size={18} color={theme.textSecondary} />
-          </Animated.View>
         </View>
 
         {open && (
@@ -175,7 +194,7 @@ function Endpoint({
 
 function Field({ label, value, grow }: { label: string; value: string; grow?: boolean }) {
   return (
-    <View style={[styles.field, grow && { flex: 1 }]}>
+    <View style={[styles.field, grow && { flex: 1, flexShrink: 1 }]}>
       <ThemedText type="field" themeColor="textSecondary">
         {label}
       </ThemedText>
@@ -187,17 +206,19 @@ function Field({ label, value, grow }: { label: string; value: string; grow?: bo
 }
 
 /** The tear line: dashes between two punched notches in the ground colour. */
-function Perforation() {
+function Perforation({ vertical = false, edgeNotch = true }: { vertical?: boolean; edgeNotch?: boolean }) {
   const theme = useTheme();
+  const notch = [styles.notch, { backgroundColor: theme.background }];
   return (
-    <View style={styles.perforation} accessible={false}>
-      <View style={[styles.notch, styles.notchLeft, { backgroundColor: theme.background }]} />
-      <View style={styles.dashes}>
+    <View style={vertical ? styles.perforationV : styles.perforation} accessible={false}>
+      {/* Sideways, the top edge is the carrier strip, so only the bottom is punched. */}
+      {!vertical && <View style={[notch, styles.notchLeft]} />}
+      <View style={vertical ? styles.dashesV : styles.dashes}>
         {Array.from({ length: 48 }, (_, i) => (
-          <View key={i} style={[styles.dash, { backgroundColor: theme.border }]} />
+          <View key={i} style={[vertical ? styles.dashV : styles.dash, { backgroundColor: theme.borderStrong }]} />
         ))}
       </View>
-      <View style={[styles.notch, styles.notchRight, { backgroundColor: theme.background }]} />
+      {edgeNotch && <View style={[notch, vertical ? styles.notchBottom : styles.notchRight]} />}
     </View>
   );
 }
@@ -224,29 +245,67 @@ export function formatHours(h: number): string {
   return minutes ? `${whole} h ${minutes} min` : `${whole} h`;
 }
 
-const NOTCH = 16;
+const NOTCH = 18;
+/** The carrier strip is ink in both themes, like a printed pass header. */
+const CARRIER = '#111418';
 
 const styles = StyleSheet.create({
   pass: { overflow: 'hidden' },
-  band: { height: 6, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg },
+  carrier: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    backgroundColor: CARRIER,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+  },
+  carrierText: { color: '#FFFFFF' },
+  band: { height: 4 },
+  landscape: { flexDirection: 'row' },
   body: { padding: Spacing.three, gap: Spacing.three },
   holder: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   route: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   track: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.one, paddingTop: Spacing.two },
   trackLine: { flex: 1, height: 2, borderRadius: 1, opacity: 0.6 },
-  fields: { flexDirection: 'row', gap: Spacing.four },
-  field: { gap: 2 },
+  // Hairline-ruled cells, as printed on a pass.
+  fields: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  field: { gap: 2, paddingVertical: Spacing.two, paddingHorizontal: Spacing.two },
+  rule: { width: StyleSheet.hairlineWidth },
   perforation: { height: NOTCH, justifyContent: 'center' },
+  perforationV: { width: NOTCH, alignSelf: 'stretch' },
   dashes: {
     flexDirection: 'row',
     gap: 5,
     overflow: 'hidden',
     marginHorizontal: NOTCH / 2 + Spacing.two,
   },
+  // Absolutely placed so the dashes fill the pass's height instead of setting it.
+  dashesV: {
+    position: 'absolute',
+    top: Spacing.three,
+    bottom: NOTCH / 2 + Spacing.two,
+    left: (NOTCH - 1.5) / 2,
+    gap: 5,
+    overflow: 'hidden',
+  },
   dash: { width: 7, height: 1.5, borderRadius: 1 },
+  dashV: { width: 1.5, height: 7, borderRadius: 1 },
   notch: { position: 'absolute', width: NOTCH, height: NOTCH, borderRadius: NOTCH / 2 },
   notchLeft: { left: -NOTCH / 2 },
   notchRight: { right: -NOTCH / 2 },
+  notchBottom: { bottom: -NOTCH / 2 },
+  stubSide: {
+    width: 190,
+    justifyContent: 'center',
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
   stub: {
     flexDirection: 'row',
     alignItems: 'center',

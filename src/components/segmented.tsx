@@ -37,7 +37,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
 
   return (
     <View style={[styles.track, { backgroundColor: theme.backgroundSelected }]}>
-      <Animated.View style={[styles.thumb, { backgroundColor: theme.card }, thumbStyle]} />
+      <Animated.View style={[styles.thumb, { backgroundColor: theme.tint }, thumbStyle]} />
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -57,7 +57,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
             style={styles.segment}>
             <ThemedText
               type="smallBold"
-              style={{ color: selected ? theme.text : theme.textSecondary }}
+              style={{ color: selected ? theme.onTint : theme.textSecondary }}
               numberOfLines={1}>
               {option.label}
             </ThemedText>

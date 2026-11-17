@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
   title: string;
-  /** primary: ink slab · secondary: outlined · destructive: red outline · ghost: bare */
+  /** primary: signal-orange slab · secondary: outlined · destructive: red outline · ghost: bare */
   variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
   icon?: IconName;
   size?: 'large' | 'small';
@@ -25,10 +25,11 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme();
 
-  const background = variant === 'primary' ? theme.text : 'transparent';
+  // The primary path is signal orange; everything else is ink on stock.
+  const background = variant === 'primary' ? theme.tint : 'transparent';
   const borderColor =
     variant === 'primary'
-      ? theme.text
+      ? theme.tint
       : variant === 'destructive'
         ? theme.danger
         : variant === 'ghost'
@@ -36,7 +37,7 @@ export function Button({
           : theme.borderStrong;
   const color =
     variant === 'primary'
-      ? theme.card
+      ? theme.onTint
       : variant === 'destructive'
         ? theme.danger
         : theme.text;

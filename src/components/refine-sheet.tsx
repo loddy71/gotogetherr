@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
@@ -6,6 +6,7 @@ import { Segmented } from '@/components/segmented';
 import { Sheet } from '@/components/sheet';
 import { ThemedText } from '@/components/themed-text';
 import { Toggle } from '@/components/toggle';
+import { Flag } from '@/components/flag';
 import { Motion, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity } from '@/lib/data/cities';
@@ -142,7 +143,7 @@ export function RefineSheet({
               const city = getCity(v.cityCode);
               return (
                 <View key={v.cityCode} style={styles.vetoRow}>
-                  <Text style={styles.flag}>{city.flag}</Text>
+                  <Flag emoji={city.flag} width={24} />
                   <View style={{ flex: 1 }}>
                     <ThemedText type="defaultBold">{city.name}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -184,13 +185,13 @@ function TogglePill({
         style={[
           styles.pill,
           {
-            backgroundColor: selected ? theme.text : 'transparent',
-            borderColor: selected ? theme.text : theme.borderStrong,
+            backgroundColor: selected ? theme.tint : 'transparent',
+            borderColor: selected ? theme.tint : theme.borderStrong,
             transitionProperty: ['backgroundColor', 'borderColor'],
             transitionDuration: Motion.duration.base,
           },
         ]}>
-        <ThemedText type="smallBold" style={{ color: selected ? theme.background : theme.text }}>
+        <ThemedText type="smallBold" style={{ color: selected ? theme.onTint : theme.text }}>
           {label}
         </ThemedText>
       </Animated.View>
@@ -227,9 +228,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-  },
-  flag: {
-    fontSize: 20,
   },
   switchRow: {
     flexDirection: 'row',

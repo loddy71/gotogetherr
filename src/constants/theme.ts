@@ -42,7 +42,7 @@ export const Colors = {
     costRoom: '#8B939D',
     costDaily: '#C9CED5',
     /** Map land dots. */
-    land: '#CBD1D8',
+    land: '#B9C0C9',
     /** Default chart columns (≥ 3:1 on the card surface). */
     chartMark: '#8B939D',
     scrim: 'rgba(17, 20, 24, 0.42)',
@@ -66,7 +66,7 @@ export const Colors = {
     costFlight: '#EEF1F5',
     costRoom: '#8B939D',
     costDaily: '#4A525E',
-    land: '#2A313B',
+    land: '#46505D',
     chartMark: '#6B7480',
     scrim: 'rgba(0, 0, 0, 0.6)',
   },

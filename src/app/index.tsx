@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvatarStack } from '@/components/avatar';
 import { BrandMark } from '@/components/brand-mark';
+import { SpecimenPasses } from '@/components/specimen-passes';
 import { PageTitle } from '@/components/page-title';
 import { BOTTOM_BAR_CLEARANCE, BottomBar } from '@/components/bottom-bar';
 import { Button } from '@/components/button';
@@ -30,6 +32,8 @@ export default function HomeScreen() {
   const { trips, hydrated, saveTrip } = useTrips();
   const insets = useSafeAreaInsets();
   const enter = useEntrance();
+  // One example trip per visit, so the specimen and the opened trip match.
+  const [example] = useState(exampleTrip);
 
   return (
     <ThemedView style={styles.screen}>
@@ -63,11 +67,13 @@ export default function HomeScreen() {
           </ThemedText>
         </Animated.View>
 
-        <Animated.View entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))}>
-          <Card style={styles.mapCard}>
-            <WorldMap markers={ALL_CITY_CODES} focus={false} aspect={2.5} />
-          </Card>
-        </Animated.View>
+        {trips.length > 0 && (
+          <Animated.View entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))}>
+            <Card style={styles.mapCard}>
+              <WorldMap markers={ALL_CITY_CODES} focus={false} aspect={2.5} />
+            </Card>
+          </Animated.View>
+        )}
 
         {trips.length > 0 && (
           <Animated.View entering={enter(FadeInDown.delay(180).duration(Motion.duration.slow))} style={styles.sectionHead}>
@@ -76,26 +82,28 @@ export default function HomeScreen() {
         )}
 
         {hydrated && trips.length === 0 && (
-          <Animated.View entering={enter(FadeInDown.delay(180).duration(Motion.duration.slow))}>
-            <Card style={styles.empty}>
-              <ThemedText type="heading">Nothing planned yet.</ThemedText>
+          <Animated.View
+            entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))}
+            style={styles.specimen}>
+            {/* First run leads with the product itself: one pass per friend. */}
+            <SpecimenPasses trip={example} />
+            <View style={styles.specimenText}>
+              <ThemedText type="heading">Three friends, three continents.</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
-                Name the trip, pick a month, and add where everyone flies from. Two people is
-                enough to start. Or see how it works with three friends in London, New York and
-                Tokyo.
+                Maya, Sam and Kenji live in London, New York and Tokyo. Each gets a pass to the
+                city where the trip costs least and splits most evenly, with what they pay.
               </ThemedText>
-              <Button
-                title="Try an example"
-                variant="secondary"
-                size="small"
-                style={styles.exampleButton}
-                onPress={() => {
-                  const trip = exampleTrip();
-                  saveTrip(trip);
-                  router.push(`/trip/${trip.id}`);
-                }}
-              />
-            </Card>
+            </View>
+            <Button
+              title="Try an example"
+              variant="secondary"
+              size="small"
+              style={styles.exampleButton}
+              onPress={() => {
+                saveTrip(example);
+                router.push(`/trip/${example.id}`);
+              }}
+            />
           </Animated.View>
         )}
 
@@ -167,7 +175,9 @@ const styles = StyleSheet.create({
   },
   wordmark: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   wordmarkText: { fontSize: 22, lineHeight: 26 },
-  exampleButton: { alignSelf: 'flex-start', marginTop: Spacing.two },
+  exampleButton: { alignSelf: 'flex-start' },
+  specimen: { gap: Spacing.three },
+  specimenText: { gap: Spacing.one, paddingHorizontal: Spacing.one },
   intro: {
     gap: Spacing.three,
   },
@@ -176,10 +186,6 @@ const styles = StyleSheet.create({
   },
   sectionHead: {
     marginBottom: -Spacing.two,
-  },
-  empty: {
-    padding: Spacing.four,
-    gap: Spacing.two,
   },
   tripCard: {
     flexDirection: 'row',

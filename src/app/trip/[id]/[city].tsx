@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeInDown,
   LinearTransition,
@@ -22,6 +22,7 @@ import { SkeletonBlock } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
+import { Flag } from '@/components/flag';
 import {
   MaxContentWidth,
   Motion,
@@ -108,7 +109,9 @@ export default function DestinationScreen() {
         ]}>
         <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={styles.hero}>
           <View style={styles.heroTitle}>
-            <Text style={styles.heroFlag}>{city.flag}</Text>
+            <View style={styles.heroFlag}>
+              <Flag emoji={city.flag} width={42} />
+            </View>
             <View style={{ flexShrink: 1 }}>
               <ThemedText type="display">{city.name}</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
@@ -161,7 +164,7 @@ export default function DestinationScreen() {
               <View style={styles.summaryLead}>
                 <AnimatedNumber type="priceLarge" value={result.avgCost} format={money} fromZero />
                 <ThemedText type="body" themeColor="textSecondary">
-                  each, on average
+                  each, estimated average
                 </ThemedText>
               </View>
               <ThemedText type="default" themeColor="textSecondary">
@@ -182,6 +185,7 @@ export default function DestinationScreen() {
                       traveler={traveler}
                       cost={cost}
                       index={i}
+                      count={result.perTraveler.length}
                       destinationCode={city.code}
                       month={trip.month}
                       nights={trip.nights}
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
   },
   hero: { gap: Spacing.two + 2 },
   heroTitle: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two + 4 },
-  heroFlag: { fontSize: 34, lineHeight: 46 },
+  heroFlag: { paddingTop: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   mapCard: { padding: Spacing.two },
   summary: { gap: Spacing.one, paddingHorizontal: Spacing.one },

@@ -170,6 +170,25 @@ export default function ResultsScreen() {
     trip.travelers.reduce((a, t) => a + flightHours(t.originCode, top.cityCode), 0) /
       trip.travelers.length;
 
+  // On phones the ranking comes first; the month comparison follows it.
+  const monthsBlock = months && (
+    <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))}>
+      <Card style={styles.monthsCard}>
+        <ThemedText type="heading">When&apos;s cheapest?</ThemedText>
+        <MonthChart
+          options={months.options}
+          month={trip.month}
+          stale={months.key !== monthsKey}
+          onPlan={(month) => {
+            haptic('success');
+            setSettled(true);
+            saveTrip({ ...trip, month });
+          }}
+        />
+      </Card>
+    </Animated.View>
+  );
+
   const share = async () => {
     const outcome = await shareTrip(trip);
     if (outcome === 'copied') {
@@ -252,7 +271,7 @@ export default function ResultsScreen() {
                 }}
               />
               <ThemedText type="small" themeColor="textSecondary" style={styles.blurb}>
-                {MODE_BLURB[mode]} Figures are per person: return flight, a shared mid-range room and
+                {MODE_BLURB[mode]} Figures are estimates per person: return flight, a shared mid-range room and
                 food on the ground.
               </ThemedText>
               <View style={styles.filterBar}>
@@ -277,24 +296,7 @@ export default function ResultsScreen() {
               </View>
             </Animated.View>
 
-            {months && (
-              <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))}>
-                <Card style={styles.monthsCard}>
-                  <ThemedText type="heading">When&apos;s cheapest?</ThemedText>
-                  <MonthChart
-                    options={months.options}
-                    month={trip.month}
-                    stale={months.key !== monthsKey}
-                    onPlan={(month) => {
-                      haptic('success');
-                      setSettled(true);
-                      saveTrip({ ...trip, month });
-                    }}
-                  />
-                </Card>
-              </Animated.View>
-            )}
-
+            {wide && monthsBlock}
           </View>
 
           <View style={[{ gap: Spacing.three }, wide && { flex: 1 }]}>
@@ -353,6 +355,7 @@ export default function ResultsScreen() {
             )}
           </View>
         </View>
+        {!wide && monthsBlock}
       </Animated.ScrollView>
 
       <RefineSheet
