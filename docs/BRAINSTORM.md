@@ -68,7 +68,17 @@ Lessons baked into the provider interface:
 
 ## Design direction
 
-**v3 (current): paper and ink, softened, with motion.** Feedback on v2 was
+**v4 (current): the boarding-pass world.** Feedback on v3 was that it still
+looked like AI output. It did: cream ground, a serif display and a red accent
+is one of the looks AI-generated interfaces converge on. A polish pass could
+not fix that, so v4 went through Impeccable's redesign flow: a product
+interview (`PRODUCT.md`), a seeded direction roll, then a separate finish
+review. The chosen world is the boarding pass: airport grey, white pass stock,
+ink, one signal orange, a livery colour per traveler, condensed airport codes,
+and "who pays what" as one pass per friend. The system is recorded in
+`DESIGN.md`.
+
+**v3: paper and ink, softened, with motion.** Feedback on v2 was
 to make it smoother. The identity stays (paper, ink, serif, one accent), but
 surfaces are rounded cards, and everything moves on one shared set of
 springs: results glide when re-ranked, the map re-routes, figures roll,
@@ -82,7 +92,7 @@ iconography, medal circles, pill badges, drop-shadowed cards. It read as
 templated, which is death for a product whose whole pitch is taste and
 judgement about travel.
 
-The current direction is a **printed travel guide**:
+v2's direction was a **printed travel guide**:
 
 - Warm paper stock and ink, not white-on-grey chrome. One accent (stamp red),
   rationed to the top-ranked city, selected tabs and links.
