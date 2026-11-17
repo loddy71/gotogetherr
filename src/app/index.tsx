@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
 import { MaxContentWidth, Motion, Spacing } from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useTheme } from '@/hooks/use-theme';
 import { CITIES, getCity } from '@/lib/data/cities';
 import { exampleTrip } from '@/lib/example';
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { trips, hydrated, saveTrip } = useTrips();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
 
   return (
     <ThemedView style={styles.screen}>
@@ -38,7 +40,7 @@ export default function HomeScreen() {
           styles.content,
           { paddingTop: insets.top + Spacing.four, paddingBottom: BOTTOM_BAR_CLEARANCE },
         ]}>
-        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={styles.masthead}>
+        <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={styles.masthead}>
           <View style={styles.wordmark} accessibilityLabel="GoTogether">
             <BrandMark size={22} />
             <ThemedText type="heading" style={styles.wordmarkText}>
@@ -51,7 +53,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         <Animated.View
-          entering={FadeInDown.delay(60).duration(Motion.duration.slow)}
+          entering={enter(FadeInDown.delay(60).duration(Motion.duration.slow))}
           style={styles.intro}>
           <ThemedText type="display">Find the fairest{'\n'}place to meet.</ThemedText>
           <ThemedText type="body" themeColor="textSecondary">
@@ -61,20 +63,20 @@ export default function HomeScreen() {
           </ThemedText>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))}>
           <Card style={styles.mapCard}>
             <WorldMap markers={ALL_CITY_CODES} focus={false} aspect={2.5} />
           </Card>
         </Animated.View>
 
         {trips.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(180).duration(Motion.duration.slow)} style={styles.sectionHead}>
+          <Animated.View entering={enter(FadeInDown.delay(180).duration(Motion.duration.slow))} style={styles.sectionHead}>
             <ThemedText type="heading">Your trips</ThemedText>
           </Animated.View>
         )}
 
         {hydrated && trips.length === 0 && (
-          <Animated.View entering={FadeInDown.delay(180).duration(Motion.duration.slow)}>
+          <Animated.View entering={enter(FadeInDown.delay(180).duration(Motion.duration.slow))}>
             <Card style={styles.empty}>
               <ThemedText type="heading">Nothing planned yet.</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
@@ -101,7 +103,7 @@ export default function HomeScreen() {
           {trips.map((trip, i) => (
             <Animated.View
               key={trip.id}
-              entering={FadeInDown.delay(220 + i * Motion.stagger).duration(Motion.duration.slow)}
+              entering={enter(FadeInDown.delay(220 + i * Motion.stagger).duration(Motion.duration.slow))}
               layout={LinearTransition.springify().damping(Motion.glide.damping)}>
               <TripCard trip={trip} onPress={() => router.push(`/trip/${trip.id}`)} />
             </Animated.View>
@@ -118,9 +120,7 @@ export default function HomeScreen() {
 
 function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
   const theme = useTheme();
-  const flags = [...new Set(trip.travelers.map((t) => t.originCode))].map(
-    (code) => getCity(code).flag,
-  );
+  const origins = [...new Set(trip.travelers.map((t) => t.originCode))];
 
   return (
     <PressableScale onPress={onPress} scaleTo={0.98}>
@@ -134,7 +134,13 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
           </ThemedText>
           <View style={styles.tripFoot}>
             <AvatarStack names={trip.travelers.map((t) => t.name)} size={26} />
-            <Text style={styles.flags}>{flags.join(' ')}</Text>
+            <ThemedText
+              type="numeral"
+              numberOfLines={1}
+              accessibilityLabel={`Flying from ${origins.map((c) => getCity(c).name).join(', ')}`}
+              style={{ flexShrink: 1 }}>
+              {origins.join(' · ')}
+            </ThemedText>
           </View>
         </View>
         <View style={[styles.go, { backgroundColor: theme.backgroundSelected }]}>
@@ -186,10 +192,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     marginTop: 2,
-  },
-  flags: {
-    fontSize: 15,
-    letterSpacing: 2,
   },
   go: {
     width: 38,

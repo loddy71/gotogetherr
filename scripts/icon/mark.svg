@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- GoTogether mark: three flight arcs, as on the route map, landing on one stamp-red point. -->
-  <rect id="paper" width="1024" height="1024" fill="#F3F0E8"/>
+  <!-- GoTogether mark: three travelers' routes in their livery colours landing on one signal-orange point. -->
+  <rect id="paper" width="1024" height="1024" fill="#111418"/>
   <g id="mark" transform="translate(-4 -98)" fill="none" stroke-linecap="round">
-    <path d="M150 660 Q 330 250, 560 600" stroke="#35635A" stroke-width="52"/>
-    <path d="M874 680 Q 740 380, 560 600" stroke="#C0913F" stroke-width="52"/>
-    <path d="M300 800 Q 420 600, 560 600" stroke="#B0513A" stroke-width="52"/>
-    <circle cx="150" cy="660" r="38" fill="#1C1916" stroke="none"/>
-    <circle cx="874" cy="680" r="38" fill="#1C1916" stroke="none"/>
-    <circle cx="300" cy="800" r="38" fill="#1C1916" stroke="none"/>
-    <circle cx="560" cy="600" r="92" fill="#A33F27" stroke="#F3F0E8" stroke-width="30"/>
+    <path d="M150 660 Q 330 250, 560 600" stroke="#2F5BEA" stroke-width="52"/>
+    <path d="M874 680 Q 740 380, 560 600" stroke="#E5A000" stroke-width="52"/>
+    <path d="M300 800 Q 420 600, 560 600" stroke="#0B7A6E" stroke-width="52"/>
+    <circle cx="150" cy="660" r="38" fill="#FFFFFF" stroke="none"/>
+    <circle cx="874" cy="680" r="38" fill="#FFFFFF" stroke="none"/>
+    <circle cx="300" cy="800" r="38" fill="#FFFFFF" stroke="none"/>
+    <circle cx="560" cy="600" r="92" fill="#FF5A1F" stroke="#111418" stroke-width="30"/>
   </g>
 </svg>

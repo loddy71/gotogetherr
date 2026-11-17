@@ -11,12 +11,12 @@ import { chromium } from 'playwright';
 
 const svg = readFileSync(new URL('./icon/mark.svg', import.meta.url), 'utf8');
 const mark = svg.match(/<g id="mark"[\s\S]*?<\/g>/)[0];
-const PAPER = '#F3F0E8';
+const PAPER = '#111418'; // ink ground
 
 /** The mark scaled by `scale` about the centre, on `background` (or transparent). */
 function compose({ size, scale = 1, background = PAPER, monochrome = false }) {
   let body = mark;
-  if (monochrome) body = body.replace(/(stroke|fill)="#[0-9A-Fa-f]{6}"/g, '$1="#FFFFFF"').replace(/stroke="#FFFFFF" stroke-width="28"/, 'stroke="none"');
+  if (monochrome) body = body.replace(/(stroke|fill)="#[0-9A-Fa-f]{6}"/g, '$1="#FFFFFF"').replace(/stroke="#FFFFFF" stroke-width="30"/, 'stroke="none"');
   const offset = (1024 * (1 - scale)) / 2;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${size}" height="${size}">
     ${background ? `<rect width="1024" height="1024" fill="${background}"/>` : ''}

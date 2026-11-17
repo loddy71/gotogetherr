@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
   title: string;
-  /** primary: ink pill · secondary: outlined pill · destructive: red outline · ghost: bare */
+  /** primary: ink slab · secondary: outlined · destructive: red outline · ghost: bare */
   variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
   icon?: IconName;
   size?: 'large' | 'small';
@@ -36,7 +36,7 @@ export function Button({
           : theme.borderStrong;
   const color =
     variant === 'primary'
-      ? theme.background
+      ? theme.card
       : variant === 'destructive'
         ? theme.danger
         : theme.text;
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
     borderWidth: 1,
   },
   small: {

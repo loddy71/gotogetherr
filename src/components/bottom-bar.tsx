@@ -46,13 +46,13 @@ const styles = StyleSheet.create({
   surface: {
     width: '100%',
     maxWidth: MaxContentWidth - Spacing.four,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
     padding: 6,
   },
   floating: {
     padding: 0,
     ...Platform.select({
-      web: { boxShadow: '0 2px 4px rgba(40, 30, 20, 0.10), 0 10px 28px rgba(40, 30, 20, 0.16)' } as object,
+      web: { boxShadow: '0 2px 4px rgba(17, 20, 24, 0.12), 0 10px 28px rgba(17, 20, 24, 0.18)' } as object,
       default: {
         shadowOpacity: 0.18,
         shadowRadius: 16,

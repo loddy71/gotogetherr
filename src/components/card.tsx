@@ -5,8 +5,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
- * Raised paper. Elevation is declared once: a soft offset shadow on light
- * stock, a hairline edge on dark (where shadows don't read). Never both.
+ * Pass stock on the airport-grey ground. Elevation is declared once: a soft
+ * offset shadow in light, a hairline edge in dark (where shadows don't read).
  */
 export function Card({
   style,
@@ -37,9 +37,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   raised: Platform.select({
-    web: { boxShadow: '0 1px 2px rgba(40, 30, 20, 0.06), 0 6px 18px rgba(40, 30, 20, 0.06)' },
+    web: { boxShadow: '0 1px 2px rgba(17, 20, 24, 0.06), 0 4px 14px rgba(17, 20, 24, 0.06)' },
     default: {
-      shadowColor: '#281E14',
+      shadowColor: '#111418',
       shadowOpacity: 0.08,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },

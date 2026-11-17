@@ -29,19 +29,21 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
 
   return (
     <PressableScale onPress={onPress} scaleTo={0.985}>
-      <Card style={[styles.card, isTop && { borderColor: theme.tint, borderWidth: 1 }]}>
+      <Card style={[styles.card, isTop && { borderColor: theme.tint, borderWidth: 2 }]}>
         <View style={styles.head}>
-          <ThemedText
-            type="numeral"
-            style={[styles.rank, { color: isTop ? theme.tint : theme.textSecondary }]}>
+          <ThemedText type="numeral" themeColor="textSecondary" style={styles.rank}>
             {rank}
           </ThemedText>
-          <View style={{ flex: 1, gap: 2 }}>
+          {/* The airport code is the row's display voice, as on a pass. */}
+          <ThemedText type="iata" style={styles.code}>
+            {city.code}
+          </ThemedText>
+          <View style={{ flex: 1, gap: 1 }}>
             <View style={styles.cityLine}>
-              <Text style={styles.flag}>{city.flag}</Text>
-              <ThemedText type="heading" numberOfLines={1} style={{ flexShrink: 1 }}>
+              <ThemedText type="defaultBold" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {city.name}
               </ThemedText>
+              <Text style={styles.flag}>{city.flag}</Text>
             </View>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
               {city.country} · {city.vibes.slice(0, 2).join(', ')}
@@ -92,12 +94,14 @@ const styles = StyleSheet.create({
   },
   head: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.two + 2,
   },
   rank: {
-    width: 22,
-    paddingTop: 4,
+    width: 20,
+  },
+  code: {
+    minWidth: 58,
   },
   cityLine: {
     flexDirection: 'row',
@@ -105,7 +109,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   flag: {
-    fontSize: 18,
+    fontSize: 15,
   },
   price: {
     alignItems: 'flex-end',

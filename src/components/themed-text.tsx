@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { DisplayFont, Fonts, ThemeColor } from '@/constants/theme';
+import { CodeFont, DisplayFont, Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type TextType =
@@ -17,6 +17,8 @@ export type TextType =
   | 'price'
   | 'priceLarge'
   | 'numeral'
+  | 'iata'
+  | 'field'
   | 'link'
   | 'code';
 
@@ -40,17 +42,17 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 export const textStyles = StyleSheet.create({
-  display: { fontFamily: DisplayFont, fontSize: 44, lineHeight: 47, letterSpacing: -0.4 },
-  title: { fontFamily: DisplayFont, fontSize: 34, lineHeight: 38, letterSpacing: -0.2 },
-  heading: { fontFamily: DisplayFont, fontSize: 24, lineHeight: 28 },
-  price: { fontFamily: DisplayFont, fontSize: 26, lineHeight: 29, fontVariant: ['tabular-nums'] },
-  priceLarge: {
-    fontFamily: DisplayFont,
-    fontSize: 32,
-    lineHeight: 35,
-    fontVariant: ['tabular-nums'],
-  },
+  // Condensed grotesk: display moments, names, codes and big figures.
+  display: { fontFamily: CodeFont, fontSize: 46, lineHeight: 46, letterSpacing: -0.6 },
+  title: { fontFamily: DisplayFont, fontSize: 34, lineHeight: 36, letterSpacing: -0.3 },
+  heading: { fontFamily: DisplayFont, fontSize: 22, lineHeight: 26, letterSpacing: -0.1 },
+  price: { fontFamily: DisplayFont, fontSize: 26, lineHeight: 28, fontVariant: ['tabular-nums'] },
+  priceLarge: { fontFamily: CodeFont, fontSize: 40, lineHeight: 40, fontVariant: ['tabular-nums'] },
   numeral: { fontFamily: DisplayFont, fontSize: 20, lineHeight: 22, fontVariant: ['tabular-nums'] },
+  /** IATA city codes (LON, NYC): the pass's own display voice. */
+  iata: { fontFamily: CodeFont, fontSize: 32, lineHeight: 32, letterSpacing: 0.4 },
+  /** Field labels printed on a pass (FROM, FLIGHT TIME): data labels, not eyebrows. */
+  field: { fontSize: 10.5, lineHeight: 13, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' },
   /** Field and group labels: sentence case, never a tracked-caps eyebrow over a heading. */
   label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   body: { fontSize: 16, lineHeight: 24 },

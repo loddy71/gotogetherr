@@ -2,54 +2,48 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  FadeIn,
   FadeInDown,
   LinearTransition,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
   useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedNumber } from '@/components/animated-number';
+import { BoardingPass } from '@/components/boarding-pass';
 import { Avatar } from '@/components/avatar';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
-import { StackedBar } from '@/components/cost-bar';
-import { Icon } from '@/components/icon';
 import { LivePricesCard } from '@/components/live-prices';
 import { PageTitle } from '@/components/page-title';
 import { PressableScale } from '@/components/pressable-scale';
-import { DotLeader } from '@/components/dot-leader';
 import { HEADER_BAR_HEIGHT, ScreenHeader } from '@/components/screen-header';
 import { SkeletonBlock } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
 import {
-  CostColors,
   MaxContentWidth,
   Motion,
   Spacing,
   TouchTarget,
   travelerColor,
 } from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity, hotelSeasonFactor, seasonOf, weatherFor } from '@/lib/data/cities';
 import { money, monthName } from '@/lib/format';
-import { flightHours } from '@/lib/pricing/mock-provider';
 import { type CostGrid, priceGrid, pricingKey } from '@/lib/scoring';
 import { toggleVeto, vetoedBy } from '@/lib/filters';
 import { haptic } from '@/lib/haptics';
 import { useTrip, useTrips } from '@/lib/store';
-import type { Traveler, TravelerCost } from '@/lib/types';
 
 const percent = (n: number) => `${Math.round(n)}%`;
 
 export default function DestinationScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
   const { id, city: cityCode } = useLocalSearchParams<{ id: string; city: string }>();
   const trip = useTrip(id);
   const { saveTrip, hydrated } = useTrips();
@@ -112,7 +106,7 @@ export default function DestinationScreen() {
           styles.content,
           { paddingTop: insets.top + HEADER_BAR_HEIGHT + Spacing.two, paddingBottom: insets.bottom + Spacing.six },
         ]}>
-        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={styles.hero}>
+        <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={styles.hero}>
           <View style={styles.heroTitle}>
             <Text style={styles.heroFlag}>{city.flag}</Text>
             <View style={{ flexShrink: 1 }}>
@@ -148,7 +142,7 @@ export default function DestinationScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(80).duration(Motion.duration.slow))}>
           <Card style={styles.mapCard}>
             <WorldMap origins={origins} destination={city.code} />
           </Card>
@@ -162,7 +156,7 @@ export default function DestinationScreen() {
         ) : (
           <>
             <Animated.View
-              entering={FadeInDown.delay(140).duration(Motion.duration.slow)}
+              entering={enter(FadeInDown.delay(140).duration(Motion.duration.slow))}
               style={styles.summary}>
               <View style={styles.summaryLead}>
                 <AnimatedNumber type="priceLarge" value={result.avgCost} format={money} fromZero />
@@ -175,7 +169,7 @@ export default function DestinationScreen() {
               </ThemedText>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)} style={{ gap: Spacing.three }}>
+            <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))} style={{ gap: Spacing.three }}>
               <ThemedText type="heading" style={{ paddingHorizontal: Spacing.one }}>
                 Who pays what
               </ThemedText>
@@ -184,11 +178,13 @@ export default function DestinationScreen() {
                 if (!traveler) return null;
                 return (
                   <Animated.View key={cost.travelerId} layout={LinearTransition.springify().damping(Motion.glide.damping)}>
-                    <TravelerCard
+                    <BoardingPass
                       traveler={traveler}
                       cost={cost}
                       index={i}
                       destinationCode={city.code}
+                      month={trip.month}
+                      nights={trip.nights}
                       open={expanded === cost.travelerId}
                       onToggle={() => setExpanded((cur) => (cur === cost.travelerId ? null : cost.travelerId))}
                     />
@@ -197,7 +193,7 @@ export default function DestinationScreen() {
               })}
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(260).duration(Motion.duration.slow)}>
+            <Animated.View entering={enter(FadeInDown.delay(260).duration(Motion.duration.slow))}>
               <Card style={styles.vetoCard}>
                 <View style={{ gap: 2 }}>
                   <ThemedText type="heading">Anyone out?</ThemedText>
@@ -222,14 +218,14 @@ export default function DestinationScreen() {
                         style={[
                           styles.vetoPill,
                           {
-                            backgroundColor: out ? theme.tint : theme.backgroundSelected,
+                            backgroundColor: out ? theme.danger : theme.backgroundSelected,
                           },
                         ]}>
                         <Avatar name={t.name} index={i} size={24} />
-                        <ThemedText type="smallBold" style={{ color: out ? '#FCFAF6' : theme.text }}>
+                        <ThemedText type="smallBold" style={{ color: out ? '#FFFFFF' : theme.text }}>
                           {t.name}
                         </ThemedText>
-                        <ThemedText type="caption" style={{ color: out ? '#FCFAF6' : theme.textSecondary }}>
+                        <ThemedText type="caption" style={{ color: out ? '#FFFFFF' : theme.textSecondary }}>
                           {out ? 'Out' : 'In'}
                         </ThemedText>
                       </PressableScale>
@@ -239,7 +235,7 @@ export default function DestinationScreen() {
               </Card>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(320).duration(Motion.duration.slow)}>
+            <Animated.View entering={enter(FadeInDown.delay(320).duration(Motion.duration.slow))}>
               <LivePricesCard
                 cityCode={city.code}
                 month={trip.month}
@@ -261,106 +257,6 @@ export default function DestinationScreen() {
   );
 }
 
-function TravelerCard({
-  traveler,
-  cost,
-  index,
-  destinationCode,
-  open,
-  onToggle,
-}: {
-  traveler: Traveler;
-  cost: TravelerCost;
-  index: number;
-  destinationCode: string;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const theme = useTheme();
-  const origin = getCity(traveler.originCode);
-  const hours = flightHours(traveler.originCode, destinationCode);
-
-  const rotation = useSharedValue(open ? 1 : 0);
-  useEffect(() => {
-    rotation.set(withSpring(open ? 1 : 0, Motion.snappy));
-  }, [open, rotation]);
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value * 180}deg` }],
-  }));
-
-  return (
-    <PressableScale
-      onPress={onToggle}
-      scaleTo={0.985}
-      feedback="selection"
-      accessibilityState={{ expanded: open }}>
-      <Card style={styles.travelerCard}>
-        <View style={styles.travelerHead}>
-          <Avatar name={traveler.name} index={index} size={36} />
-          <View style={{ flex: 1, gap: 1 }}>
-            <ThemedText type="defaultBold">{traveler.name}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {cost.isHome ? 'Lives here, no flight' : `From ${origin.name} · ≈ ${formatHours(hours)} flying`}
-            </ThemedText>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <AnimatedNumber type="price" value={cost.total} format={money} fromZero />
-            {traveler.budget ? (
-              <ThemedText type="caption" style={{ color: cost.overBudget ? theme.danger : theme.success }}>
-                {cost.overBudget
-                  ? `${money(cost.total - traveler.budget)} over budget`
-                  : `${money(traveler.budget - cost.total)} under budget`}
-              </ThemedText>
-            ) : null}
-          </View>
-          <Animated.View style={chevronStyle}>
-            <Icon name="chevron-down" size={18} color={theme.textSecondary} />
-          </Animated.View>
-        </View>
-
-        <StackedBar
-          delay={200 + index * Motion.stagger}
-          segments={[
-            { key: 'flight', value: cost.flight, color: CostColors.flight },
-            { key: 'hotel', value: cost.hotelShare, color: CostColors.hotel },
-            { key: 'daily', value: cost.daily, color: CostColors.daily },
-          ]}
-        />
-
-        {open && (
-          <Animated.View entering={FadeIn.duration(Motion.duration.base)} style={{ gap: 6 }}>
-            <LineItem label="Return flight" value={cost.flight} color={CostColors.flight} />
-            <LineItem label="Share of the room" value={cost.hotelShare} color={CostColors.hotel} />
-            <LineItem label="Food & getting around" value={cost.daily} color={CostColors.daily} />
-          </Animated.View>
-        )}
-      </Card>
-    </PressableScale>
-  );
-}
-
-function LineItem({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <View style={styles.lineItem}>
-      <View style={[styles.tick, { backgroundColor: color }]} />
-      <ThemedText type="small" themeColor="textSecondary">
-        {label}
-      </ThemedText>
-      <DotLeader />
-      <ThemedText type="smallBold" style={{ fontVariant: ['tabular-nums'] }}>
-        {money(value)}
-      </ThemedText>
-    </View>
-  );
-}
-
-function formatHours(h: number): string {
-  const whole = Math.floor(h);
-  const minutes = Math.round((h - whole) * 60 / 15) * 15;
-  if (minutes === 60) return `${whole + 1} h`;
-  return minutes ? `${whole} h ${minutes} min` : `${whole} h`;
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
@@ -373,15 +269,11 @@ const styles = StyleSheet.create({
   },
   hero: { gap: Spacing.two + 2 },
   heroTitle: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two + 4 },
-  heroFlag: { fontSize: 34, lineHeight: 47 },
+  heroFlag: { fontSize: 34, lineHeight: 46 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   mapCard: { padding: Spacing.two },
   summary: { gap: Spacing.one, paddingHorizontal: Spacing.one },
   summaryLead: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two, flexWrap: 'wrap' },
-  travelerCard: { padding: Spacing.three, gap: Spacing.three },
-  travelerHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
-  lineItem: { flexDirection: 'row', alignItems: 'center' },
-  tick: { width: 7, height: 7, borderRadius: 2, marginRight: Spacing.two },
   footnote: { paddingHorizontal: Spacing.one },
   vetoCard: { padding: Spacing.three, gap: Spacing.three },
   vetoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

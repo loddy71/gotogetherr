@@ -118,7 +118,7 @@ export function WorldMap({ origins = [], destination, markers = [], aspect = 1.9
 
           {markers.map((code) => {
             const c = getCity(code);
-            return <Circle key={code} cx={c.lon} cy={-c.lat} r={2.2 * px} fill={theme.tint} opacity={0.8} />;
+            return <Circle key={code} cx={c.lon} cy={-c.lat} r={2.2 * px} fill={theme.text} opacity={0.75} />;
           })}
 
           {dest &&
@@ -186,7 +186,11 @@ export function WorldMap({ origins = [], destination, markers = [], aspect = 1.9
             { backgroundColor: theme.text, opacity: draw },
             labelPosition(toScreen(dest.lon, dest.lat), width, height),
           ]}>
-          <ThemedText type="caption" style={{ color: theme.background }}>
+          <ThemedText type="caption" style={{ color: theme.card }} numberOfLines={1}>
+            <ThemedText type="caption" style={{ color: theme.card, fontWeight: '800' }}>
+              {dest.code}
+            </ThemedText>
+            {'  '}
             {dest.name}
           </ThemedText>
         </View>
@@ -218,6 +222,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     paddingVertical: 4,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.sm,
   },
 });

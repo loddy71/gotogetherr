@@ -25,6 +25,7 @@ import { HeaderIconButton } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DisplayFont, MaxContentWidth, Motion, Radius, Spacing, TouchTarget } from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { MONTHS, newId } from '@/lib/format';
@@ -46,6 +47,7 @@ function TripForm({ id }: { id?: string }) {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
   const existing = useTrip(id);
   const { saveTrip, deleteTrip } = useTrips();
 
@@ -101,7 +103,7 @@ function TripForm({ id }: { id?: string }) {
           contentContainerStyle={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE + Spacing.four }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          <Animated.View entering={FadeInDown.duration(Motion.duration.slow)}>
+          <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))}>
             <Section label="Trip name">
               <TextInput
                 value={name}
@@ -113,7 +115,7 @@ function TripForm({ id }: { id?: string }) {
             </Section>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(60).duration(Motion.duration.slow)}>
+          <Animated.View entering={enter(FadeInDown.delay(60).duration(Motion.duration.slow))}>
             <Section label="When">
               <View style={styles.months}>
                 {MONTHS.map((label, i) => (
@@ -141,7 +143,7 @@ function TripForm({ id }: { id?: string }) {
             </Section>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(120).duration(Motion.duration.slow)} layout={layoutSpring}>
+          <Animated.View entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))} layout={layoutSpring}>
             <ThemedText type="label" themeColor="textSecondary" style={styles.sectionLabel}>
               Who&apos;s coming
             </ThemedText>
@@ -149,7 +151,7 @@ function TripForm({ id }: { id?: string }) {
               {travelers.map((traveler, i) => (
                 <Animated.View
                   key={traveler.id}
-                  entering={FadeInDown.springify().damping(Motion.glide.damping)}
+                  entering={enter(FadeInDown.springify().damping(Motion.glide.damping))}
                   exiting={FadeOut.duration(Motion.duration.fast)}
                   layout={layoutSpring}>
                   <Card style={styles.traveler}>
@@ -325,8 +327,8 @@ const styles = StyleSheet.create({
   monthPill: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: Radius.pill,
+    minHeight: 40,
+    borderRadius: Radius.sm,
   },
   nightsRow: {
     flexDirection: 'row',

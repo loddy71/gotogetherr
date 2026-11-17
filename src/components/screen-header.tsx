@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, TouchTarget } from '@/constants/theme';
+import { MaxContentWidth, Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export const HEADER_BAR_HEIGHT = 56;
@@ -24,6 +24,8 @@ type ScreenHeaderProps = {
   /** Scroll distance at which the compact title is fully shown. */
   collapseAt?: number;
   right?: ReactNode;
+  /** Width of the content column the buttons line up with. */
+  maxWidth?: number;
 };
 
 /**
@@ -31,7 +33,13 @@ type ScreenHeaderProps = {
  * at rest; as you scroll, the paper background, hairline and compact title
  * fade in together.
  */
-export function ScreenHeader({ title, scrollY, collapseAt = 70, right }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  scrollY,
+  collapseAt = 70,
+  right,
+  maxWidth = MaxContentWidth,
+}: ScreenHeaderProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -66,7 +74,7 @@ export function ScreenHeader({ title, scrollY, collapseAt = 70, right }: ScreenH
           barStyle,
         ]}
       />
-      <View style={styles.row} pointerEvents="box-none">
+      <View style={[styles.row, { maxWidth }]} pointerEvents="box-none">
         <PressableScale
           accessibilityLabel="Back"
           onPress={goBack}
@@ -120,6 +128,8 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { backdropFilter: 'blur(12px)' } as object, default: {} }),
   },
   row: {
+    width: '100%',
+    alignSelf: 'center',
     height: HEADER_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',

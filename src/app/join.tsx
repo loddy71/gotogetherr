@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
 import { MaxContentWidth, Motion, Spacing, travelerColor } from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { getCity } from '@/lib/data/cities';
 import { monthName } from '@/lib/format';
@@ -24,6 +25,7 @@ import { useTrips } from '@/lib/store';
 export default function JoinScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
   const { d } = useLocalSearchParams<{ d?: string }>();
   const { saveTrip } = useTrips();
 
@@ -63,14 +65,14 @@ export default function JoinScreen() {
           styles.content,
           { paddingTop: insets.top + Spacing.five, paddingBottom: BOTTOM_BAR_CLEARANCE },
         ]}>
-        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={{ gap: Spacing.two }}>
+        <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={{ gap: Spacing.two }}>
           <ThemedText type="display">{trip.name}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             You&apos;re invited · {monthName(trip.month)} · {trip.nights} nights · {trip.travelers.length} friends so far
           </ThemedText>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(80).duration(Motion.duration.slow))}>
           <Card style={{ padding: Spacing.two }}>
             <WorldMap
               origins={trip.travelers.map((t, i) => ({ key: t.id, code: t.originCode, color: travelerColor(i) }))}
@@ -78,7 +80,7 @@ export default function JoinScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(140).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(140).duration(Motion.duration.slow))}>
           <Card style={styles.list}>
             {trip.travelers.map((t, i) => {
               const city = getCity(t.originCode);
@@ -98,7 +100,7 @@ export default function JoinScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))}>
           <ThemedText type="body" themeColor="textSecondary">
             Take a copy of this trip, add yourself and what you can spend, and see which city works
             out fairest for the group.

@@ -71,7 +71,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
     padding: 3,
   },
   thumb: {
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     top: 3,
     bottom: 3,
     left: 0,
-    borderRadius: Radius.pill,
-    shadowColor: '#281E14',
+    borderRadius: Radius.sm + 1,
+    shadowColor: '#111418',
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
+    // With the track's padding this makes a 44 pt row.
+    minHeight: 38,
   },
 });
