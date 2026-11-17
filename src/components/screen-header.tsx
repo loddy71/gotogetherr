@@ -12,10 +12,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export const HEADER_BAR_HEIGHT = 52;
+export const HEADER_BAR_HEIGHT = 56;
 
 type ScreenHeaderProps = {
   /** Compact title that fades in once the large title has scrolled away. */
@@ -127,9 +127,9 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   circle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: TouchTarget,
+    height: TouchTarget,
+    borderRadius: TouchTarget / 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: 'row',
     gap: Spacing.two,
-    minWidth: 38,
+    minWidth: TouchTarget,
     justifyContent: 'flex-end',
   },
 });

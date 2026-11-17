@@ -25,9 +25,18 @@ export type ThemedTextProps = TextProps & {
   themeColor?: ThemeColor;
 };
 
+/** Display, title and heading text are headings for screen readers and web outline. */
+const HEADING_TYPES: ReadonlySet<TextType> = new Set(['display', 'title', 'heading']);
+
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
-  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
+  return (
+    <Text
+      role={HEADING_TYPES.has(type) ? 'heading' : undefined}
+      style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]}
+      {...rest}
+    />
+  );
 }
 
 export const textStyles = StyleSheet.create({
@@ -42,13 +51,8 @@ export const textStyles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   numeral: { fontFamily: DisplayFont, fontSize: 20, lineHeight: 22, fontVariant: ['tabular-nums'] },
-  label: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-  },
+  /** Field and group labels: sentence case, never a tracked-caps eyebrow over a heading. */
+  label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   body: { fontSize: 16, lineHeight: 24 },
   default: { fontSize: 15, lineHeight: 21 },
   defaultBold: { fontSize: 15, lineHeight: 21, fontWeight: '600' },

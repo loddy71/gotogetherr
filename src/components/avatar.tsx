@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { travelerColor } from '@/constants/theme';
+import { onTravelerColor, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 function initials(name: string): string {
@@ -21,7 +21,7 @@ export function Avatar({ name, index, size = 30 }: { name: string; index: number
       ]}>
       <ThemedText
         type="smallBold"
-        style={{ color: '#FCFAF6', fontSize: size * 0.38, lineHeight: size * 0.5 }}>
+        style={{ color: onTravelerColor(index), fontSize: size * 0.38, lineHeight: size * 0.5 }}>
         {initials(name)}
       </ThemedText>
     </View>

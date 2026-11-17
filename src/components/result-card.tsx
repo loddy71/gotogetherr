@@ -6,7 +6,7 @@ import { Chip } from '@/components/chip';
 import { CostBar } from '@/components/cost-bar';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { DangerColor, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity, weatherFor } from '@/lib/data/cities';
 import { money } from '@/lib/format';
@@ -74,7 +74,7 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
           <View style={styles.flags}>
             {isTop && <Chip label="Best match" tone="accent" />}
             {result.overBudgetCount > 0 && (
-              <ThemedText type="caption" style={{ color: DangerColor }}>
+              <ThemedText type="caption" style={{ color: theme.danger }}>
                 Over budget for {result.overBudgetCount}
               </ThemedText>
             )}

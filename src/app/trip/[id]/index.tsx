@@ -17,6 +17,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { MonthChart } from '@/components/month-chart';
+import { PageTitle } from '@/components/page-title';
 import { RefineSheet } from '@/components/refine-sheet';
 import { ResultCard } from '@/components/result-card';
 import { HEADER_BAR_HEIGHT, HeaderIconButton, ScreenHeader } from '@/components/screen-header';
@@ -33,10 +34,10 @@ import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { compareMonths, type MonthOption } from '@/lib/months';
 import { flightHours } from '@/lib/pricing/mock-provider';
-import { rankDestinations } from '@/lib/scoring';
+import { type CostGrid, priceGrid, pricingKey, scoreGrid } from '@/lib/scoring';
 import { shareTrip } from '@/lib/share';
 import { useTrip, useTrips } from '@/lib/store';
-import type { DestinationResult, TripFilters } from '@/lib/types';
+import type { TripFilters } from '@/lib/types';
 
 type RankMode = 'cheapest' | 'balanced' | 'fairest';
 
@@ -63,7 +64,7 @@ export default function ResultsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trip = useTrip(id);
   const { saveTrip, hydrated } = useTrips();
-  const [results, setResults] = useState<DestinationResult[] | null>(null);
+  const [priced, setPriced] = useState<{ key: string; grid: CostGrid } | null>(null);
   const [showAll, setShowAll] = useState(false);
   // The staggered entrance plays on arrival; re-ranking by mode glides in place.
   const [settled, setSettled] = useState(false);
@@ -76,16 +77,25 @@ export default function ResultsScreen() {
     scrollY.set(e.contentOffset.y);
   });
 
+  // Prices change only with who flies from where, when and for how long.
+  // Mode, filters and vetoes re-score the cached grid synchronously instead.
+  const priceKey = trip ? pricingKey(trip) : '';
   useEffect(() => {
     if (!trip) return;
     let cancelled = false;
-    rankDestinations(trip).then((r) => {
-      if (!cancelled) setResults(r);
+    priceGrid(trip).then((grid) => {
+      if (!cancelled) setPriced({ key: priceKey, grid });
     });
     return () => {
       cancelled = true;
     };
-  }, [trip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on priceKey on purpose
+  }, [priceKey]);
+  const fairnessWeight = trip?.fairnessWeight ?? 0.5;
+  const results = useMemo(
+    () => (priced ? scoreGrid(priced.grid, fairnessWeight) : null),
+    [priced, fairnessWeight],
+  );
 
   // The month comparison depends on everything except the month itself.
   const monthsKey = trip
@@ -138,6 +148,7 @@ export default function ResultsScreen() {
   const ranked = results ? applyFilters(trip, results) : null;
   const top = ranked?.[0];
   const visible = ranked ? (showAll ? ranked : ranked.slice(0, INITIAL_VISIBLE)) : [];
+  const quietList = refineOpen || showAll;
 
   const updateFilters = (next: TripFilters) => {
     setSettled(true);
@@ -158,6 +169,7 @@ export default function ResultsScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle title={trip.name} />
       <ScreenHeader
         title={trip.name}
         scrollY={scrollY}
@@ -252,9 +264,7 @@ export default function ResultsScreen() {
         {months && (
           <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)}>
             <Card style={styles.monthsCard}>
-              <ThemedText type="label" themeColor="textSecondary">
-                When&apos;s cheapest?
-              </ThemedText>
+              <ThemedText type="heading">When&apos;s cheapest?</ThemedText>
               <MonthChart
                 options={months.options}
                 month={trip.month}
@@ -279,13 +289,22 @@ export default function ResultsScreen() {
           {visible.map((r, i) => (
             <Animated.View
               key={r.cityCode}
-              layout={LinearTransition.springify().damping(Motion.glide.damping).stiffness(Motion.glide.stiffness)}
-              entering={
-                settled
-                  ? FadeIn.duration(Motion.duration.base)
-                  : FadeInDown.delay(Math.min(i, 8) * Motion.stagger).duration(Motion.duration.slow)
+              // The reorder glide is for the top ten in view. Behind the Refine
+              // sheet, or with all 50 shown, cards just move: measuring and
+              // animating every card cost 0.4–0.8 s of main thread on the web.
+              layout={
+                quietList
+                  ? undefined
+                  : LinearTransition.springify().damping(Motion.glide.damping).stiffness(Motion.glide.stiffness)
               }
-              exiting={FadeOut.duration(Motion.duration.fast)}>
+              entering={
+                refineOpen
+                  ? undefined
+                  : settled
+                    ? FadeIn.duration(Motion.duration.base)
+                    : FadeInDown.delay(Math.min(i, 8) * Motion.stagger).duration(Motion.duration.slow)
+              }
+              exiting={refineOpen ? undefined : FadeOut.duration(Motion.duration.fast)}>
               <ResultCard
                 rank={i + 1}
                 result={r}

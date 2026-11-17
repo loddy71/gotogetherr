@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -19,6 +19,7 @@ import { Chip } from '@/components/chip';
 import { StackedBar } from '@/components/cost-bar';
 import { Icon } from '@/components/icon';
 import { LivePricesCard } from '@/components/live-prices';
+import { PageTitle } from '@/components/page-title';
 import { PressableScale } from '@/components/pressable-scale';
 import { DotLeader } from '@/components/dot-leader';
 import { HEADER_BAR_HEIGHT, ScreenHeader } from '@/components/screen-header';
@@ -28,22 +29,21 @@ import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
 import {
   CostColors,
-  DangerColor,
   MaxContentWidth,
   Motion,
   Spacing,
-  SuccessColor,
+  TouchTarget,
   travelerColor,
 } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity, hotelSeasonFactor, seasonOf, weatherFor } from '@/lib/data/cities';
 import { money, monthName } from '@/lib/format';
 import { flightHours } from '@/lib/pricing/mock-provider';
-import { rankDestinations } from '@/lib/scoring';
+import { type CostGrid, priceGrid, pricingKey } from '@/lib/scoring';
 import { toggleVeto, vetoedBy } from '@/lib/filters';
 import { haptic } from '@/lib/haptics';
 import { useTrip, useTrips } from '@/lib/store';
-import type { DestinationResult, Traveler, TravelerCost } from '@/lib/types';
+import type { Traveler, TravelerCost } from '@/lib/types';
 
 const percent = (n: number) => `${Math.round(n)}%`;
 
@@ -52,8 +52,8 @@ export default function DestinationScreen() {
   const insets = useSafeAreaInsets();
   const { id, city: cityCode } = useLocalSearchParams<{ id: string; city: string }>();
   const trip = useTrip(id);
-  const { saveTrip } = useTrips();
-  const [result, setResult] = useState<DestinationResult | null>(null);
+  const { saveTrip, hydrated } = useTrips();
+  const [priced, setPriced] = useState<{ key: string; grid: CostGrid } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const scrollY = useSharedValue(0);
@@ -61,16 +61,20 @@ export default function DestinationScreen() {
     scrollY.set(e.contentOffset.y);
   });
 
+  // Same cached grid as the results screen: vetoes and mode never re-price.
+  const priceKey = trip ? pricingKey(trip) : '';
   useEffect(() => {
     if (!trip) return;
     let cancelled = false;
-    rankDestinations(trip).then((all) => {
-      if (!cancelled) setResult(all.find((r) => r.cityCode === cityCode) ?? null);
+    priceGrid(trip).then((grid) => {
+      if (!cancelled) setPriced({ key: priceKey, grid });
     });
     return () => {
       cancelled = true;
     };
-  }, [trip, cityCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on priceKey on purpose
+  }, [priceKey]);
+  const result = priced?.grid.find((r) => r.cityCode === cityCode) ?? null;
 
   const origins = useMemo(
     () =>
@@ -81,7 +85,11 @@ export default function DestinationScreen() {
   if (!trip || !cityCode) {
     return (
       <ThemedView style={[styles.screen, styles.center]}>
-        <ThemedText themeColor="textSecondary">This trip no longer exists.</ThemedText>
+        {hydrated ? (
+          <ThemedText themeColor="textSecondary">This trip no longer exists.</ThemedText>
+        ) : (
+          <ActivityIndicator />
+        )}
       </ThemedView>
     );
   }
@@ -93,6 +101,7 @@ export default function DestinationScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle title={`${city.name} · ${trip.name}`} />
       <ScreenHeader title={city.name} scrollY={scrollY} collapseAt={90} />
 
       <Animated.ScrollView
@@ -104,14 +113,14 @@ export default function DestinationScreen() {
           { paddingTop: insets.top + HEADER_BAR_HEIGHT + Spacing.two, paddingBottom: insets.bottom + Spacing.six },
         ]}>
         <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={styles.hero}>
-          <ThemedText type="label" style={{ color: theme.tint }}>
-            {city.country}
-          </ThemedText>
           <View style={styles.heroTitle}>
             <Text style={styles.heroFlag}>{city.flag}</Text>
-            <ThemedText type="display" style={{ flexShrink: 1 }}>
-              {city.name}
-            </ThemedText>
+            <View style={{ flexShrink: 1 }}>
+              <ThemedText type="display">{city.name}</ThemedText>
+              <ThemedText type="default" themeColor="textSecondary">
+                {city.country}
+              </ThemedText>
+            </View>
           </View>
           <ThemedText type="body" themeColor="textSecondary">
             {city.blurb}
@@ -146,23 +155,28 @@ export default function DestinationScreen() {
         </Animated.View>
 
         {!result ? (
-          <Card style={[styles.stats, { padding: Spacing.four }]}>
-            <SkeletonBlock width="100%" height={40} />
-          </Card>
+          <View style={styles.summary}>
+            <SkeletonBlock width={160} height={34} />
+            <SkeletonBlock width={240} height={16} />
+          </View>
         ) : (
           <>
-            <Animated.View entering={FadeInDown.delay(140).duration(Motion.duration.slow)}>
-              <Card style={styles.stats}>
-                <Stat label="Group total" value={result.totalCost} format={money} />
-                <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                <Stat label="Each" value={result.avgCost} format={money} />
-                <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                <Stat label="Even split" value={result.fairness * 100} format={percent} />
-              </Card>
+            <Animated.View
+              entering={FadeInDown.delay(140).duration(Motion.duration.slow)}
+              style={styles.summary}>
+              <View style={styles.summaryLead}>
+                <AnimatedNumber type="priceLarge" value={result.avgCost} format={money} fromZero />
+                <ThemedText type="body" themeColor="textSecondary">
+                  each, on average
+                </ThemedText>
+              </View>
+              <ThemedText type="default" themeColor="textSecondary">
+                {money(result.totalCost)} for the group · the split is {percent(result.fairness * 100)} even
+              </ThemedText>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)} style={{ gap: Spacing.three }}>
-              <ThemedText type="label" themeColor="textSecondary" style={{ paddingHorizontal: Spacing.one }}>
+              <ThemedText type="heading" style={{ paddingHorizontal: Spacing.one }}>
                 Who pays what
               </ThemedText>
               {result.perTraveler.map((cost, i) => {
@@ -186,9 +200,7 @@ export default function DestinationScreen() {
             <Animated.View entering={FadeInDown.delay(260).duration(Motion.duration.slow)}>
               <Card style={styles.vetoCard}>
                 <View style={{ gap: 2 }}>
-                  <ThemedText type="label" themeColor="textSecondary">
-                    Anyone out?
-                  </ThemedText>
+                  <ThemedText type="heading">Anyone out?</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
                     Tap a name to rule {city.name} out for them. It leaves the ranking for
                     everyone; restore it from Refine.
@@ -249,17 +261,6 @@ export default function DestinationScreen() {
   );
 }
 
-function Stat({ label, value, format }: { label: string; value: number; format: (n: number) => string }) {
-  return (
-    <View style={styles.stat}>
-      <AnimatedNumber type="price" value={value} format={format} fromZero />
-      <ThemedText type="caption" themeColor="textSecondary">
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
 function TravelerCard({
   traveler,
   cost,
@@ -305,7 +306,7 @@ function TravelerCard({
           <View style={{ alignItems: 'flex-end' }}>
             <AnimatedNumber type="price" value={cost.total} format={money} fromZero />
             {traveler.budget ? (
-              <ThemedText type="caption" style={{ color: cost.overBudget ? DangerColor : SuccessColor }}>
+              <ThemedText type="caption" style={{ color: cost.overBudget ? theme.danger : theme.success }}>
                 {cost.overBudget
                   ? `${money(cost.total - traveler.budget)} over budget`
                   : `${money(traveler.budget - cost.total)} under budget`}
@@ -371,17 +372,12 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   hero: { gap: Spacing.two + 2 },
-  heroTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2 },
-  heroFlag: { fontSize: 34 },
+  heroTitle: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two + 4 },
+  heroFlag: { fontSize: 34, lineHeight: 47 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   mapCard: { padding: Spacing.two },
-  stats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.three + 2,
-  },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
-  divider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch' },
+  summary: { gap: Spacing.one, paddingHorizontal: Spacing.one },
+  summaryLead: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two, flexWrap: 'wrap' },
   travelerCard: { padding: Spacing.three, gap: Spacing.three },
   travelerHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
   lineItem: { flexDirection: 'row', alignItems: 'center' },
@@ -393,9 +389,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    paddingLeft: 4,
+    minHeight: TouchTarget,
+    paddingLeft: Spacing.two,
     paddingRight: Spacing.three,
-    paddingVertical: 4,
     borderRadius: 999,
   },
 });

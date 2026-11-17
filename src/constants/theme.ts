@@ -22,8 +22,14 @@ export const Colors = {
     border: '#E0D9CB',
     borderStrong: '#C4BBA8',
     text: '#1C1916',
-    textSecondary: '#766D60',
+    /** ≥ 4.5:1 on background, card and backgroundSelected. */
+    textSecondary: '#6B6256',
     tint: '#A33F27',
+    /** Text on warningSurface (weather hazards). */
+    warning: '#7A5410',
+    warningSurface: '#ECE3D0',
+    danger: '#B4432B',
+    success: '#3F7050',
     /** Map land dots. */
     land: '#D9D2C2',
     /** Default chart columns (≥ 3:1 on the card surface). */
@@ -40,6 +46,10 @@ export const Colors = {
     text: '#F1ECE2',
     textSecondary: '#9C9386',
     tint: '#DB7254',
+    warning: '#D9A55A',
+    warningSurface: '#2A2215',
+    danger: '#E07A5F',
+    success: '#7DB08E',
     land: '#39332B',
     chartMark: '#6E665A',
     scrim: 'rgba(0, 0, 0, 0.55)',
@@ -48,9 +58,6 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 export type Palette = (typeof Colors)['light'] | (typeof Colors)['dark'];
-
-export const DangerColor = '#B4432B';
-export const SuccessColor = '#3F7050';
 
 /** Traveler ink colors — muted travel-stamp set, ordered for mutual contrast. */
 export const TravelerColors = [
@@ -66,6 +73,11 @@ export const TravelerColors = [
 
 export function travelerColor(index: number): string {
   return TravelerColors[index % TravelerColors.length];
+}
+
+/** Ink or paper, whichever reads better on a traveler's colour (the ochre needs ink). */
+export function onTravelerColor(index: number): string {
+  return travelerColor(index) === '#C0913F' ? '#1C1916' : '#FCFAF6';
 }
 
 /** Cost components in the per-person breakdown. */
@@ -103,13 +115,15 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  sm: 10,
-  md: 16,
-  lg: 22,
+  sm: 8,
+  md: 12,
+  /** Cards and sheets. */
+  lg: 16,
   pill: 999,
 } as const;
 
-export const Hairline = Platform.select({ web: 1, default: 0.5 }) ?? 1;
+/** Minimum touch target (Apple HIG 44 pt; Material asks 48 dp, met with hit slop). */
+export const TouchTarget = 44;
 
 /**
  * Motion. Springs for anything the finger moves or that changes place;
@@ -127,5 +141,4 @@ export const Motion = {
   stagger: 45,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 640;

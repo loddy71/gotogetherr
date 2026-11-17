@@ -4,6 +4,8 @@ import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvatarStack } from '@/components/avatar';
+import { BrandMark } from '@/components/brand-mark';
+import { PageTitle } from '@/components/page-title';
 import { BOTTOM_BAR_CLEARANCE, BottomBar } from '@/components/bottom-bar';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -15,6 +17,7 @@ import { WorldMap } from '@/components/world-map';
 import { MaxContentWidth, Motion, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { CITIES, getCity } from '@/lib/data/cities';
+import { exampleTrip } from '@/lib/example';
 import { monthName } from '@/lib/format';
 import { useTrips } from '@/lib/store';
 import type { Trip } from '@/lib/types';
@@ -23,11 +26,12 @@ const ALL_CITY_CODES = CITIES.map((c) => c.code);
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { trips, hydrated } = useTrips();
+  const { trips, hydrated, saveTrip } = useTrips();
   const insets = useSafeAreaInsets();
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle />
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -35,10 +39,13 @@ export default function HomeScreen() {
           { paddingTop: insets.top + Spacing.four, paddingBottom: BOTTOM_BAR_CLEARANCE },
         ]}>
         <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={styles.masthead}>
-          <ThemedText type="label" style={{ letterSpacing: 2 }}>
-            GoTogether
-          </ThemedText>
-          <ThemedText type="label" themeColor="textSecondary">
+          <View style={styles.wordmark} accessibilityLabel="GoTogether">
+            <BrandMark size={22} />
+            <ThemedText type="heading" style={styles.wordmarkText}>
+              GoTogether
+            </ThemedText>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
             {CITIES.length} cities
           </ThemedText>
         </Animated.View>
@@ -60,20 +67,32 @@ export default function HomeScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(180).duration(Motion.duration.slow)} style={styles.sectionHead}>
-          <ThemedText type="label" themeColor="textSecondary">
-            {trips.length > 0 ? 'Your trips' : 'Start here'}
-          </ThemedText>
-        </Animated.View>
+        {trips.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(180).duration(Motion.duration.slow)} style={styles.sectionHead}>
+            <ThemedText type="heading">Your trips</ThemedText>
+          </Animated.View>
+        )}
 
         {hydrated && trips.length === 0 && (
-          <Animated.View entering={FadeInDown.delay(220).duration(Motion.duration.slow)}>
+          <Animated.View entering={FadeInDown.delay(180).duration(Motion.duration.slow)}>
             <Card style={styles.empty}>
               <ThemedText type="heading">Nothing planned yet.</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
                 Name the trip, pick a month, and add where everyone flies from. Two people is
-                enough to start.
+                enough to start. Or see how it works with three friends in London, New York and
+                Tokyo.
               </ThemedText>
+              <Button
+                title="Try an example"
+                variant="secondary"
+                size="small"
+                style={styles.exampleButton}
+                onPress={() => {
+                  const trip = exampleTrip();
+                  saveTrip(trip);
+                  router.push(`/trip/${trip.id}`);
+                }}
+              />
             </Card>
           </Animated.View>
         )}
@@ -138,8 +157,11 @@ const styles = StyleSheet.create({
   masthead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
+  wordmark: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  wordmarkText: { fontSize: 22, lineHeight: 26 },
+  exampleButton: { alignSelf: 'flex-start', marginTop: Spacing.two },
   intro: {
     gap: Spacing.three,
   },

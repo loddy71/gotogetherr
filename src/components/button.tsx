@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from '@/components/icon';
 import { PressableScale, type PressableScaleProps } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { DangerColor, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
@@ -30,7 +30,7 @@ export function Button({
     variant === 'primary'
       ? theme.text
       : variant === 'destructive'
-        ? DangerColor
+        ? theme.danger
         : variant === 'ghost'
           ? 'transparent'
           : theme.borderStrong;
@@ -38,7 +38,7 @@ export function Button({
     variant === 'primary'
       ? theme.background
       : variant === 'destructive'
-        ? DangerColor
+        ? theme.danger
         : theme.text;
 
   return (
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   small: {
-    minHeight: 38,
+    minHeight: TouchTarget,
     paddingHorizontal: Spacing.three,
   },
   row: {

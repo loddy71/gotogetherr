@@ -218,6 +218,23 @@ try {
   await darkContext.close();
   console.log('dark mode OK');
 
+  // First run: a fresh visitor can try a ready-made trip in one tap.
+  const fresh = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const newcomer = await fresh.newPage();
+  await newcomer.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
+  await newcomer.getByRole('button', { name: 'Try an example' }).click();
+  await newcomer.waitForSelector('text=Best match', { timeout: 20000 });
+  console.log('example trip OK');
+
+  // A mangled invite (unknown city) must show the friendly error, not crash.
+  const badLink = Buffer.from(
+    JSON.stringify({ v: 1, trip: { name: 'x', month: 5, nights: 3, travelers: [{ originCode: 'ZZZ' }] } }),
+  ).toString('base64url');
+  await newcomer.goto(`http://localhost:${PORT}/join?d=${badLink}`, { waitUntil: 'networkidle' });
+  await newcomer.getByText("This invitation didn't survive the trip.").waitFor({ timeout: 15000 });
+  await fresh.close();
+  console.log('bad invite OK');
+
   console.log('SMOKE PASS');
 } finally {
   await browser?.close();

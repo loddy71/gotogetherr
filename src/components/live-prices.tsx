@@ -41,9 +41,7 @@ export function LivePricesCard({
   return (
     <Card style={styles.card}>
       <View style={{ gap: 2 }}>
-        <ThemedText type="label" themeColor="textSecondary">
-          Check live prices
-        </ThemedText>
+        <ThemedText type="heading">Check live prices</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           Suggested dates: <ThemedText type="smallBold">{formatDateRange(dates)}</ThemedText>{' '}
           ({nights} {nights === 1 ? 'night' : 'nights'}). The figures above are estimates;

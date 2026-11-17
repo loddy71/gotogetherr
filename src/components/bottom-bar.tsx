@@ -8,7 +8,8 @@ import { useTheme } from '@/hooks/use-theme';
 
 /**
  * Floating action area pinned above the home indicator. Liquid glass on
- * iOS 26+, frosted paper on the web, plain paper elsewhere.
+ * iOS 26+; elsewhere the button floats on one soft shadow (no second pill
+ * around it, which read as a halo).
  */
 export function BottomBar({ children }: { children: ReactNode }) {
   const theme = useTheme();
@@ -24,14 +25,7 @@ export function BottomBar({ children }: { children: ReactNode }) {
           {children}
         </GlassView>
       ) : (
-        <View
-          style={[
-            styles.surface,
-            styles.paper,
-            { backgroundColor: `${theme.background}E6`, borderColor: theme.border },
-          ]}>
-          {children}
-        </View>
+        <View style={[styles.surface, styles.floating, { shadowColor: theme.text }]}>{children}</View>
       )}
     </View>
   );
@@ -55,17 +49,13 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     padding: 6,
   },
-  paper: {
-    borderWidth: StyleSheet.hairlineWidth,
+  floating: {
+    padding: 0,
     ...Platform.select({
-      web: {
-        backdropFilter: 'blur(14px)',
-        boxShadow: '0 10px 30px rgba(40, 30, 20, 0.12)',
-      } as object,
+      web: { boxShadow: '0 2px 4px rgba(40, 30, 20, 0.10), 0 10px 28px rgba(40, 30, 20, 0.16)' } as object,
       default: {
-        shadowColor: '#281E14',
-        shadowOpacity: 0.12,
-        shadowRadius: 20,
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
         shadowOffset: { width: 0, height: 8 },
         elevation: 6,
       },

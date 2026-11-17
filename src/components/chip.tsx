@@ -17,14 +17,14 @@ export function Chip({
 }) {
   const theme = useTheme();
   const color =
-    tone === 'accent' ? theme.tint : tone === 'warning' ? '#9A6A1C' : theme.textSecondary;
+    tone === 'accent' ? theme.tint : tone === 'warning' ? theme.warning : theme.textSecondary;
 
   return (
     <View
       style={[
         styles.chip,
         {
-          backgroundColor: tone === 'warning' ? 'rgba(192, 145, 63, 0.14)' : theme.backgroundSelected,
+          backgroundColor: tone === 'warning' ? theme.warningSurface : theme.backgroundSelected,
         },
       ]}>
       {icon && <Icon name={icon} size={13} color={color} strokeWidth={2} />}
