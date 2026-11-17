@@ -16,9 +16,16 @@ import type { FlightQuery, FlightQuote, PriceProvider, StayQuery, StayQuote } fr
  * Any network / upstream failure throws — wrap in `FallbackProvider` so the
  * ranking engine degrades to estimates per-route instead of failing whole.
  */
+/** Requests in flight at once, so a full ranking doesn't open hundreds of sockets. */
+const MAX_CONCURRENT = 8;
+/** A hung proxy costs one timeout, after which FallbackProvider stops asking. */
+const TIMEOUT_MS = 4000;
+
 export class ProxyPriceProvider implements PriceProvider {
   readonly name = 'live';
   private cache = new Map<string, Promise<number>>();
+  private active = 0;
+  private queue: (() => void)[] = [];
 
   constructor(private readonly proxyBaseUrl: string) {}
 
@@ -52,12 +59,22 @@ export class ProxyPriceProvider implements PriceProvider {
   }
 
   private async fetchPrice(path: string): Promise<number> {
-    const res = await fetch(`${this.proxyBaseUrl}${path}`);
-    if (!res.ok) throw new Error(`pricing proxy ${res.status} for ${path}`);
-    const body = (await res.json()) as { price?: number };
-    if (typeof body.price !== 'number' || !Number.isFinite(body.price)) {
-      throw new Error(`pricing proxy returned no price for ${path}`);
+    if (this.active >= MAX_CONCURRENT) await new Promise<void>((go) => this.queue.push(go));
+    this.active++;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      const res = await fetch(`${this.proxyBaseUrl}${path}`, { signal: controller.signal });
+      if (!res.ok) throw new Error(`pricing proxy ${res.status} for ${path}`);
+      const body = (await res.json()) as { price?: number };
+      if (typeof body.price !== 'number' || !Number.isFinite(body.price)) {
+        throw new Error(`pricing proxy returned no price for ${path}`);
+      }
+      return body.price;
+    } finally {
+      clearTimeout(timer);
+      this.active--;
+      this.queue.shift()?.();
     }
-    return body.price;
   }
 }

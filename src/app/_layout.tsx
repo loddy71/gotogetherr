@@ -1,4 +1,6 @@
-import { InstrumentSerif_400Regular, useFonts } from '@expo-google-fonts/instrument-serif';
+// Per-weight import: the package root also bundles the unused italic.
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -17,11 +19,14 @@ export default function RootLayout() {
   const dark = colorScheme === 'dark';
   const palette = dark ? Colors.dark : Colors.light;
 
-  const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular });
+  // expo-font's hook also emits @font-face into the static web export, so the
+  // serif paints with the page instead of after the bundle runs.
+  const [fontsLoaded, fontError] = useFonts({ InstrumentSerif_400Regular });
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    // Never strand the splash: fall back to the system serif on error.
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
 
   const navTheme = {
     ...(dark ? DarkTheme : DefaultTheme),

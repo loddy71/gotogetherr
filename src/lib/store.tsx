@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { isCityCode } from '@/lib/data/cities';
 import type { Trip } from '@/lib/types';
 
 /**
@@ -23,19 +24,29 @@ const TripsContext = createContext<TripsContextValue | null>(null);
 export function TripsProvider({ children }: { children: ReactNode }) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [hydrated, setHydrated] = useState(false);
-  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (raw) setTrips(JSON.parse(raw) as Trip[]);
+        const stored = raw ? validTrips(JSON.parse(raw)) : [];
+        // Keep anything saved before storage answered (e.g. a join link).
+        setTrips((early) => [...early, ...stored.filter((t) => !early.some((e) => e.id === t.id))]);
       })
       .catch(() => {})
       .finally(() => setHydrated(true));
   }, []);
 
+  // Persist after load only, debounced, from committed state.
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = setTimeout(() => {
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trips)).catch(() => {});
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [trips, hydrated]);
+
   const saveTrip = (trip: Trip) => {
-    setTripsSafe((prev) => {
+    setTrips((prev) => {
       const i = prev.findIndex((t) => t.id === trip.id);
       const next = [...prev];
       if (i >= 0) next[i] = trip;
@@ -45,19 +56,7 @@ export function TripsProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteTrip = (id: string) => {
-    setTripsSafe((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  // Route updates through the latest state, then persist the result.
-  const setTripsSafe = (fn: (prev: Trip[]) => Trip[]) => {
-    setTrips((prev) => {
-      const next = fn(prev);
-      if (persistTimer.current) clearTimeout(persistTimer.current);
-      persistTimer.current = setTimeout(() => {
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-      }, 150);
-      return next;
-    });
+    setTrips((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
@@ -65,6 +64,15 @@ export function TripsProvider({ children }: { children: ReactNode }) {
       {children}
     </TripsContext.Provider>
   );
+}
+
+/** Stored data is untrusted after app updates: drop travelers from unknown cities. */
+function validTrips(raw: unknown): Trip[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((t): t is Trip => !!t && typeof t.id === 'string' && Array.isArray(t.travelers))
+    .map((t) => ({ ...t, travelers: t.travelers.filter((tr) => tr && isCityCode(tr.originCode)) }))
+    .filter((t) => t.travelers.length > 0);
 }
 
 export function useTrips(): TripsContextValue {
