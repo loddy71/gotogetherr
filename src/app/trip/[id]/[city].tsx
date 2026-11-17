@@ -26,6 +26,7 @@ import { Flag } from '@/components/flag';
 import {
   MaxContentWidth,
   Motion,
+  Radius,
   Spacing,
   TouchTarget,
   travelerColor,
@@ -226,10 +227,10 @@ export default function DestinationScreen() {
                           },
                         ]}>
                         <Avatar name={t.name} index={i} size={24} />
-                        <ThemedText type="smallBold" style={{ color: out ? '#FFFFFF' : theme.text }}>
+                        <ThemedText type="smallBold" style={{ color: out ? theme.onDanger : theme.text }}>
                           {t.name}
                         </ThemedText>
-                        <ThemedText type="caption" style={{ color: out ? '#FFFFFF' : theme.textSecondary }}>
+                        <ThemedText type="caption" style={{ color: out ? theme.onDanger : theme.textSecondary }}>
                           {out ? 'Out' : 'In'}
                         </ThemedText>
                       </PressableScale>
@@ -288,6 +289,6 @@ const styles = StyleSheet.create({
     minHeight: TouchTarget,
     paddingLeft: Spacing.two,
     paddingRight: Spacing.three,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
   },
 });

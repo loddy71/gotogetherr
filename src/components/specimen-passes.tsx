@@ -6,14 +6,13 @@ import { Card } from '@/components/card';
 import { Icon } from '@/components/icon';
 import { SkeletonBlock } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, travelerColor } from '@/constants/theme';
+import { OnPassInk, PassInk, Radius, Spacing, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity } from '@/lib/data/cities';
 import { money } from '@/lib/format';
 import { rankDestinations } from '@/lib/scoring';
 import type { DestinationResult, Trip } from '@/lib/types';
 
-const CARRIER = '#111418';
 
 /**
  * First-run specimen: the example trip's best city as a fanned stack of
@@ -63,7 +62,7 @@ export function SpecimenPasses({ trip }: { trip: Trip }) {
               { marginLeft: i * Spacing.three, marginRight: (trip.travelers.length - 1 - i) * Spacing.three },
             ]}>
             <View style={styles.carrier}>
-              <BrandMark size={10} dotColor="#FFFFFF" ringColor={CARRIER} />
+              <BrandMark size={10} dotColor="#FFFFFF" ringColor={PassInk} />
               <ThemedText type="field" style={styles.carrierText}>
                 {t.name}
               </ThemedText>
@@ -101,9 +100,9 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: 5,
-    backgroundColor: CARRIER,
+    backgroundColor: PassInk,
   },
-  carrierText: { color: '#FFFFFF' },
+  carrierText: { color: OnPassInk },
   band: { height: 3 },
   row: {
     flexDirection: 'row',

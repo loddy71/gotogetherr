@@ -36,6 +36,8 @@ export const Colors = {
     warning: '#8A5A00',
     warningSurface: '#FFF1D6',
     danger: '#C42B1C',
+    /** Text on a danger fill (vetoed pill). */
+    onDanger: '#FFFFFF',
     success: '#1F7A4D',
     /** Cost parts: a neutral ramp so traveler colours keep their meaning. */
     costFlight: '#111418',
@@ -62,6 +64,7 @@ export const Colors = {
     warning: '#F2B54A',
     warningSurface: '#2E2410',
     danger: '#FF7B6B',
+    onDanger: '#0E1116',
     success: '#5BD08F',
     costFlight: '#EEF1F5',
     costRoom: '#8B939D',
@@ -77,7 +80,8 @@ export type Palette = (typeof Colors)['light'] | (typeof Colors)['dark'];
 
 /**
  * Traveler liveries: saturated, mutually distinct, none near the signal
- * orange. Each is ≥ 3:1 on pass stock in both themes.
+ * orange. All but amber are ≥ 3:1 on white pass stock; amber (2.2:1) is
+ * only ever used beside the traveler's written name, never alone.
  */
 export const TravelerColors = [
   '#2F5BEA',
@@ -90,13 +94,17 @@ export const TravelerColors = [
   '#8D6748',
 ] as const;
 
+/** The carrier strip printed across the top of every pass: ink in both themes. */
+export const PassInk = '#111418';
+export const OnPassInk = '#FFFFFF';
+
 export function travelerColor(index: number): string {
   return TravelerColors[index % TravelerColors.length];
 }
 
 /** Ink or white, whichever reads better on a traveler's livery (amber needs ink). */
 export function onTravelerColor(index: number): string {
-  return travelerColor(index) === '#E5A000' ? '#111418' : '#FFFFFF';
+  return travelerColor(index) === '#E5A000' ? PassInk : OnPassInk;
 }
 
 /** Condensed grotesk for codes, names and big figures (weights are separate families on native). */

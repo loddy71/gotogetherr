@@ -14,6 +14,7 @@ colors:
   hazard-ink: "#8A5A00"
   hazard-surface: "#FFF1D6"
   danger: "#C42B1C"
+  on-danger: "#FFFFFF"
   success: "#1F7A4D"
   cost-room: "#8B939D"
   cost-daily: "#C9CED5"
@@ -31,6 +32,7 @@ colors:
   night-hazard-ink: "#F2B54A"
   night-hazard-surface: "#2E2410"
   night-danger: "#FF7B6B"
+  night-on-danger: "#0E1116"
   night-success: "#5BD08F"
   night-cost-daily: "#4A525E"
   night-land-dot: "#46505D"
@@ -245,7 +247,7 @@ A cool, near-neutral concourse with one hot signal and a ring of saturated trave
 - **Hairline / Hairline Strong** (hairline, hairline-strong and night equivalents): card edges in dark, field rules on passes, header bar underline; strong is for outlines on secondary buttons, perforation dashes, the toggle's off track and scrollbars.
 - **Cost Ramp** (ink, cost-room, cost-daily): flight, room share and daily spend inside a pass's breakdown bar. Deliberately neutral so livery colours keep meaning "a person".
 - **Map and Chart Greys** (land-dot, chart-mark): dotted land and default month columns.
-- **Status** (danger, success, hazard-ink on hazard-surface): over/under budget lines, weather hazards, the destructive button and a vetoed city.
+- **Status** (danger, success, hazard-ink on hazard-surface): over/under budget lines, weather hazards, the destructive button and a vetoed city. A vetoed pill sets on-danger text on the danger fill (white in light, night ground in dark) so it holds 4.5:1 in both themes.
 
 ### Named Rules
 **The One Signal Rule.** Signal orange marks only where the group lands or what is selected: best match, selected mode, primary path, the meeting point. It is a fill and a graphic colour; it never sets text on stock.

@@ -16,7 +16,7 @@ import { DotLeader } from '@/components/dot-leader';
 import { Icon } from '@/components/icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { Motion, Radius, Spacing, travelerColor } from '@/constants/theme';
+import { Motion, OnPassInk, PassInk, Radius, Spacing, travelerColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDateRange, suggestedDates } from '@/lib/booking';
 import { getCity } from '@/lib/data/cities';
@@ -78,7 +78,7 @@ export function BoardingPass({
       <Card style={styles.pass} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {/* Carrier strip: the mark and the pass number, then the traveler's livery. */}
         <View style={styles.carrier}>
-          <BrandMark size={14} dotColor="#FFFFFF" ringColor={CARRIER} />
+          <BrandMark size={14} dotColor="#FFFFFF" ringColor={PassInk} />
           <ThemedText type="field" style={styles.carrierText}>
             GoTogether · Boarding pass
           </ThemedText>
@@ -247,7 +247,6 @@ export function formatHours(h: number): string {
 
 const NOTCH = 18;
 /** The carrier strip is ink in both themes, like a printed pass header. */
-const CARRIER = '#111418';
 
 const styles = StyleSheet.create({
   pass: { overflow: 'hidden' },
@@ -257,11 +256,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    backgroundColor: CARRIER,
+    backgroundColor: PassInk,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
   },
-  carrierText: { color: '#FFFFFF' },
+  carrierText: { color: OnPassInk },
   band: { height: 4 },
   landscape: { flexDirection: 'row' },
   body: { padding: Spacing.three, gap: Spacing.three },
