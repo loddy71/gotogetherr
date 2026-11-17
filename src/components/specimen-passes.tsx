@@ -77,7 +77,8 @@ export function SpecimenPasses({ trip }: { trip: Trip }) {
                 {destination.code}
               </ThemedText>
               <View style={[styles.perf, { borderColor: theme.borderStrong }]} />
-              <View style={{ alignItems: 'flex-end' }}>
+              {/* "est." shares the price's line so the fan never covers it. */}
+              <View style={styles.price}>
                 <ThemedText type="price">{money(cost.total)}</ThemedText>
                 <ThemedText type="caption" themeColor="textSecondary">
                   est.
@@ -111,6 +112,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two + 2,
   },
   code: { fontSize: 24, lineHeight: 26 },
+  price: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   perf: {
     flex: 1,
     alignSelf: 'stretch',
