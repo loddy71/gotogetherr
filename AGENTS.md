@@ -21,6 +21,11 @@ Commands:
   `.claude/launch.json` lets the Claude desktop app's preview start it.
 
 
+UI work: the Impeccable design plugin is enabled for this project
+(`.claude/settings.json`). Follow its craft floor: text ≥ 4.5:1 in both
+themes, 44 pt touch targets, sentence-case labels (no tracked-caps eyebrows),
+one elevation per card, theme tokens instead of raw hex.
+
 Git workflow (local sessions):
 
 - Work on a feature branch, never directly on `main`. Open a PR to merge.

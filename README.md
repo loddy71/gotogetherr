@@ -21,10 +21,20 @@ One codebase, three targets: it runs as a web app and as a native **iOS**
 ## Design
 
 Paper and ink, softened. The palette is warm paper stock, ink type and one
-stamp-red accent used sparingly. Instrument Serif carries the display type.
-Surfaces are rounded cards with hairline edges and very soft shadows. There
-are no gradients, and no emoji used as icons (flags stay, because they're
-data).
+stamp-red accent used sparingly. Instrument Serif carries the display type
+and section headings; labels are sentence case, never tracked caps over a
+heading. Cards declare elevation once: a soft offset shadow on light stock, a
+hairline edge on dark. There are no gradients, and no emoji used as icons
+(flags stay, because they're data).
+
+The mark (three flight arcs landing on one point) is drawn once in
+`scripts/icon/mark.svg`; `node scripts/gen-icons.mjs` renders the app icon,
+Android adaptive layers, splash and favicon from it.
+
+Accessibility floor, reviewed with [Impeccable](https://impeccable.style)'s
+audit and craft-floor rules: text ≥ 4.5:1 contrast in both themes, 44 pt
+touch targets, headings exposed to screen readers, a visible keyboard focus
+ring and themed selection on the web, and reduced-motion respected.
 
 **Motion is the point of this version.** One set of springs and curves in
 `src/constants/theme.ts` (`Motion`) drives everything:
@@ -42,7 +52,7 @@ data).
 
 Shared primitives: `PressableScale`, `Card`, `Button`, `Chip`, `Avatar`,
 `Segmented`, `Sheet`, `WorldMap`, `CostBar`, `AnimatedNumber`,
-`ScreenHeader`.
+`ScreenHeader`, `BrandMark`, `PageTitle`.
 
 ## How the ranking works
 
@@ -102,6 +112,13 @@ or tweak budgets.
 
 ## Pricing: calibrated estimates, live quotes when you want them
 
+Pricing and scoring are separate steps (`src/lib/scoring.ts`): a trip's
+cost grid is priced once per month, nights, origins and budgets, then cached;
+switching mode, filtering or vetoing only re-scores it, which is synchronous
+and takes under a millisecond. Live quotes are fetched in parallel (8 at a
+time, 4 s timeout), and after three failures in a row the app stops asking
+the proxy for a minute and uses estimates.
+
 Prices come from a deterministic estimator (`src/lib/pricing/`) calibrated
 in September 2026 against published fares and hotel rates. On seven
 benchmark routes it lands within ±11% of the typical return fare, and
@@ -148,7 +165,12 @@ npm run lint         # eslint (expo lint)
 npm run check:data   # dataset sanity + fare calibration against benchmarks
 npm run build:web    # static web export into dist/
 npm run e2e          # Playwright smoke test against dist/ (light + dark)
+node scripts/gen-icons.mjs   # re-render icons/splash/favicon from the mark
 ```
+
+The project enables the [Impeccable](https://github.com/pbakaus/impeccable)
+design plugin in `.claude/settings.json`; Claude Code sessions on this repo
+can run `/impeccable audit`, `/impeccable polish` and friends.
 
 ### Project layout
 
