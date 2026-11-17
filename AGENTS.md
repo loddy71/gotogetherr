@@ -22,9 +22,13 @@ Commands:
 
 
 UI work: the Impeccable design plugin is enabled for this project
-(`.claude/settings.json`). Follow its craft floor: text ≥ 4.5:1 in both
-themes, 44 pt touch targets, sentence-case labels (no tracked-caps eyebrows),
-one elevation per card, theme tokens instead of raw hex.
+(`.claude/settings.json`). Product context is in `PRODUCT.md`, the visual
+system in `DESIGN.md` (boarding-pass world). Follow its craft floor: text ≥
+4.5:1 in both themes, 44 pt touch targets, one elevation per card, theme
+tokens instead of raw hex. Labels are sentence case; tracked caps appear only
+as data labels printed on a pass (FROM, TO, FLIGHT, PAYS), never as an
+eyebrow over a heading. Signal orange is reserved for the best match,
+selection and the primary action.
 
 Git workflow (local sessions):
 

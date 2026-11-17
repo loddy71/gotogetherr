@@ -58,7 +58,8 @@ export function SpecimenPasses({ trip }: { trip: Trip }) {
             style={[
               styles.pass,
               // A loose fan: each pass sits a little lower and further right.
-              i > 0 && { marginTop: -Spacing.three },
+              // Overlap leaves each slice's row a margin above the next strip.
+              i > 0 && { marginTop: -Spacing.two },
               { marginLeft: i * Spacing.three, marginRight: (trip.travelers.length - 1 - i) * Spacing.three },
             ]}>
             <View style={styles.carrier}>
