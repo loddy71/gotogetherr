@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -17,6 +17,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Chip } from '@/components/chip';
 import { MonthChart } from '@/components/month-chart';
+import { PageTitle } from '@/components/page-title';
 import { RefineSheet } from '@/components/refine-sheet';
 import { ResultCard } from '@/components/result-card';
 import { HEADER_BAR_HEIGHT, HeaderIconButton, ScreenHeader } from '@/components/screen-header';
@@ -25,7 +26,16 @@ import { ResultSkeleton } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
-import { MaxContentWidth, Motion, Radius, Spacing, travelerColor } from '@/constants/theme';
+import {
+  MaxContentWidth,
+  Motion,
+  Radius,
+  Spacing,
+  travelerColor,
+  WideBreakpoint,
+  WideContentWidth,
+} from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity } from '@/lib/data/cities';
 import { applyFilters, describeFilters, filtersOf, restoreCity, vetoedCities } from '@/lib/filters';
@@ -33,10 +43,10 @@ import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { compareMonths, type MonthOption } from '@/lib/months';
 import { flightHours } from '@/lib/pricing/mock-provider';
-import { rankDestinations } from '@/lib/scoring';
+import { type CostGrid, priceGrid, pricingKey, scoreGrid } from '@/lib/scoring';
 import { shareTrip } from '@/lib/share';
 import { useTrip, useTrips } from '@/lib/store';
-import type { DestinationResult, TripFilters } from '@/lib/types';
+import type { TripFilters } from '@/lib/types';
 
 type RankMode = 'cheapest' | 'balanced' | 'fairest';
 
@@ -60,10 +70,12 @@ export default function ResultsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
+  const wide = useWindowDimensions().width >= WideBreakpoint;
   const { id } = useLocalSearchParams<{ id: string }>();
   const trip = useTrip(id);
   const { saveTrip, hydrated } = useTrips();
-  const [results, setResults] = useState<DestinationResult[] | null>(null);
+  const [priced, setPriced] = useState<{ key: string; grid: CostGrid } | null>(null);
   const [showAll, setShowAll] = useState(false);
   // The staggered entrance plays on arrival; re-ranking by mode glides in place.
   const [settled, setSettled] = useState(false);
@@ -76,16 +88,25 @@ export default function ResultsScreen() {
     scrollY.set(e.contentOffset.y);
   });
 
+  // Prices change only with who flies from where, when and for how long.
+  // Mode, filters and vetoes re-score the cached grid synchronously instead.
+  const priceKey = trip ? pricingKey(trip) : '';
   useEffect(() => {
     if (!trip) return;
     let cancelled = false;
-    rankDestinations(trip).then((r) => {
-      if (!cancelled) setResults(r);
+    priceGrid(trip).then((grid) => {
+      if (!cancelled) setPriced({ key: priceKey, grid });
     });
     return () => {
       cancelled = true;
     };
-  }, [trip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on priceKey on purpose
+  }, [priceKey]);
+  const fairnessWeight = trip?.fairnessWeight ?? 0.5;
+  const results = useMemo(
+    () => (priced ? scoreGrid(priced.grid, fairnessWeight) : null),
+    [priced, fairnessWeight],
+  );
 
   // The month comparison depends on everything except the month itself.
   const monthsKey = trip
@@ -138,6 +159,7 @@ export default function ResultsScreen() {
   const ranked = results ? applyFilters(trip, results) : null;
   const top = ranked?.[0];
   const visible = ranked ? (showAll ? ranked : ranked.slice(0, INITIAL_VISIBLE)) : [];
+  const quietList = refineOpen || showAll;
 
   const updateFilters = (next: TripFilters) => {
     setSettled(true);
@@ -147,6 +169,25 @@ export default function ResultsScreen() {
     top &&
     trip.travelers.reduce((a, t) => a + flightHours(t.originCode, top.cityCode), 0) /
       trip.travelers.length;
+
+  // On phones the ranking comes first; the month comparison follows it.
+  const monthsBlock = months && (
+    <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))}>
+      <Card style={styles.monthsCard}>
+        <ThemedText type="heading">When&apos;s cheapest?</ThemedText>
+        <MonthChart
+          options={months.options}
+          month={trip.month}
+          stale={months.key !== monthsKey}
+          onPlan={(month) => {
+            haptic('success');
+            setSettled(true);
+            saveTrip({ ...trip, month });
+          }}
+        />
+      </Card>
+    </Animated.View>
+  );
 
   const share = async () => {
     const outcome = await shareTrip(trip);
@@ -158,9 +199,11 @@ export default function ResultsScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle title={trip.name} />
       <ScreenHeader
         title={trip.name}
         scrollY={scrollY}
+        maxWidth={wide ? WideContentWidth : MaxContentWidth}
         right={
           <>
             <HeaderIconButton icon="share" label="Share" onPress={share} />
@@ -179,9 +222,10 @@ export default function ResultsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
+          wide && { maxWidth: WideContentWidth },
           { paddingTop: insets.top + HEADER_BAR_HEIGHT + Spacing.two, paddingBottom: insets.bottom + Spacing.six },
         ]}>
-        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={{ gap: Spacing.two }}>
+        <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={{ gap: Spacing.two }}>
           <ThemedText type="display">{trip.name}</ThemedText>
           <View style={styles.meta}>
             <AvatarStack names={trip.travelers.map((t) => t.name)} size={26} />
@@ -191,130 +235,127 @@ export default function ResultsScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(Motion.duration.slow)}>
-          <Card style={styles.mapCard}>
-            <WorldMap origins={origins} destination={top?.cityCode} />
-            <View style={styles.mapCaption}>
-              {top ? (
-                <ThemedText type="small" themeColor="textSecondary">
-                  Everyone meets in{' '}
-                  <ThemedText type="smallBold">{getCity(top.cityCode).name}</ThemedText>
-                  {avgHours ? ` · about ${Math.round(avgHours)} h in the air on average` : ''}
-                </ThemedText>
-              ) : (
-                <ThemedText type="small" themeColor="textSecondary">
-                  {ranked ? 'No city matches your filters yet.' : 'Pricing 50 cities for everyone…'}
-                </ThemedText>
-              )}
-            </View>
-          </Card>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(140).duration(Motion.duration.slow)} style={{ gap: Spacing.two + 2 }}>
-          <Segmented<RankMode>
-            options={[
-              { value: 'cheapest', label: 'Cheapest' },
-              { value: 'balanced', label: 'Balanced' },
-              { value: 'fairest', label: 'Fairest' },
-            ]}
-            value={mode}
-            onChange={(next) => {
-              setSettled(true);
-              saveTrip({ ...trip, fairnessWeight: MODE_WEIGHT[next] });
-            }}
-          />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.blurb}>
-            {MODE_BLURB[mode]} Figures are per person: return flight, a shared mid-range room and
-            food on the ground.
-          </ThemedText>
-          <View style={styles.filterBar}>
-            <Button
-              title="Refine"
-              icon="sliders"
-              variant="secondary"
-              size="small"
-              onPress={() => setRefineOpen(true)}
-            />
-            <View style={styles.filterChips}>
-              {activeFilters.map((label) => (
-                <Chip key={label} label={label} tone="accent" />
-              ))}
-              {vetoed.length > 0 && <Chip label={`${vetoed.length} ruled out`} />}
-              {ranked && (
-                <ThemedText type="caption" themeColor="textSecondary">
-                  {ranked.length} of {results?.length} cities
-                </ThemedText>
-              )}
-            </View>
-          </View>
-        </Animated.View>
-
-        {months && (
-          <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)}>
-            <Card style={styles.monthsCard}>
-              <ThemedText type="label" themeColor="textSecondary">
-                When&apos;s cheapest?
-              </ThemedText>
-              <MonthChart
-                options={months.options}
-                month={trip.month}
-                stale={months.key !== monthsKey}
-                onPlan={(month) => {
-                  haptic('success');
-                  setSettled(true);
-                  saveTrip({ ...trip, month });
-                }}
-              />
-            </Card>
-          </Animated.View>
-        )}
-
-        <View style={{ gap: Spacing.three }}>
-          {!results &&
-            Array.from({ length: 4 }, (_, i) => (
-              <Animated.View key={i} entering={FadeIn.delay(i * 80)}>
-                <ResultSkeleton />
-              </Animated.View>
-            ))}
-          {visible.map((r, i) => (
-            <Animated.View
-              key={r.cityCode}
-              layout={LinearTransition.springify().damping(Motion.glide.damping).stiffness(Motion.glide.stiffness)}
-              entering={
-                settled
-                  ? FadeIn.duration(Motion.duration.base)
-                  : FadeInDown.delay(Math.min(i, 8) * Motion.stagger).duration(Motion.duration.slow)
-              }
-              exiting={FadeOut.duration(Motion.duration.fast)}>
-              <ResultCard
-                rank={i + 1}
-                result={r}
-                month={trip.month}
-                revealDelay={settled ? 0 : Math.min(i, 8) * Motion.stagger + 150}
-                onPress={() => router.push(`/trip/${trip.id}/${r.cityCode}`)}
-              />
-            </Animated.View>
-          ))}
-          {ranked && ranked.length === 0 && (
-            <Animated.View entering={FadeIn.duration(Motion.duration.base)}>
-              <Card style={styles.empty}>
-                <ThemedText type="heading">Nothing fits all of that.</ThemedText>
-                <ThemedText type="default" themeColor="textSecondary">
-                  No city passes every filter for this group in {monthName(trip.month)}. Loosen the
-                  flight limit or drop a vibe.
-                </ThemedText>
-                <Button title="Refine" variant="secondary" onPress={() => setRefineOpen(true)} />
+        {/* Wide windows: the trip's controls on the left, the ranking on the right. */}
+        <View style={wide ? styles.columns : styles.stack}>
+          <View style={wide ? [styles.stack, styles.side] : styles.stack}>
+            <Animated.View entering={enter(FadeInDown.delay(80).duration(Motion.duration.slow))}>
+              <Card style={styles.mapCard}>
+                <WorldMap origins={origins} destination={top?.cityCode} />
+                <View style={styles.mapCaption}>
+                  {top ? (
+                    <ThemedText type="small" themeColor="textSecondary">
+                      Everyone meets in{' '}
+                      <ThemedText type="smallBold">{getCity(top.cityCode).name}</ThemedText>
+                      {avgHours ? ` · about ${Math.round(avgHours)} h in the air on average` : ''}
+                    </ThemedText>
+                  ) : (
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {ranked ? 'No city matches your filters yet.' : 'Pricing 50 cities for everyone…'}
+                    </ThemedText>
+                  )}
+                </View>
               </Card>
             </Animated.View>
-          )}
-          {ranked && !showAll && ranked.length > INITIAL_VISIBLE && (
-            <Button
-              title={`Show all ${ranked.length} cities`}
-              variant="secondary"
-              onPress={() => setShowAll(true)}
-            />
-          )}
+
+            <Animated.View entering={enter(FadeInDown.delay(140).duration(Motion.duration.slow))} style={{ gap: Spacing.two + 2 }}>
+              <Segmented<RankMode>
+                options={[
+                  { value: 'cheapest', label: 'Cheapest' },
+                  { value: 'balanced', label: 'Balanced' },
+                  { value: 'fairest', label: 'Fairest' },
+                ]}
+                value={mode}
+                onChange={(next) => {
+                  setSettled(true);
+                  saveTrip({ ...trip, fairnessWeight: MODE_WEIGHT[next] });
+                }}
+              />
+              <ThemedText type="small" themeColor="textSecondary" style={styles.blurb}>
+                {MODE_BLURB[mode]} Figures are estimates per person: return flight, a shared mid-range room and
+                food on the ground.
+              </ThemedText>
+              <View style={styles.filterBar}>
+                <Button
+                  title="Refine"
+                  icon="sliders"
+                  variant="secondary"
+                  size="small"
+                  onPress={() => setRefineOpen(true)}
+                />
+                <View style={styles.filterChips}>
+                  {activeFilters.map((label) => (
+                    <Chip key={label} label={label} tone="accent" />
+                  ))}
+                  {vetoed.length > 0 && <Chip label={`${vetoed.length} ruled out`} />}
+                  {ranked && (
+                    <ThemedText type="caption" themeColor="textSecondary">
+                      {ranked.length} of {results?.length} cities
+                    </ThemedText>
+                  )}
+                </View>
+              </View>
+            </Animated.View>
+
+            {wide && monthsBlock}
+          </View>
+
+          <View style={[{ gap: Spacing.three }, wide && { flex: 1 }]}>
+            {!results &&
+              Array.from({ length: 4 }, (_, i) => (
+                <Animated.View key={i} entering={enter(FadeIn.delay(i * 80))}>
+                  <ResultSkeleton />
+                </Animated.View>
+              ))}
+            {visible.map((r, i) => (
+              <Animated.View
+                key={r.cityCode}
+                // The reorder glide is for the top ten in view. Behind the Refine
+                // sheet, or with all 50 shown, cards just move: measuring and
+                // animating every card cost 0.4–0.8 s of main thread on the web.
+                layout={
+                  quietList
+                    ? undefined
+                    : LinearTransition.springify().damping(Motion.glide.damping).stiffness(Motion.glide.stiffness)
+                }
+                entering={enter(
+                  refineOpen
+                    ? undefined
+                    : settled
+                      ? FadeIn.duration(Motion.duration.base)
+                      : FadeInDown.delay(Math.min(i, 8) * Motion.stagger).duration(Motion.duration.slow)
+                )}
+                exiting={refineOpen ? undefined : FadeOut.duration(Motion.duration.fast)}>
+                <ResultCard
+                  rank={i + 1}
+                  result={r}
+                  month={trip.month}
+                  revealDelay={settled ? 0 : Math.min(i, 8) * Motion.stagger + 150}
+                  onPress={() => router.push(`/trip/${trip.id}/${r.cityCode}`)}
+                />
+              </Animated.View>
+            ))}
+            {ranked && ranked.length === 0 && (
+              <Animated.View entering={enter(FadeIn.duration(Motion.duration.base))}>
+                <Card style={styles.empty}>
+                  <ThemedText type="heading">Nothing fits all of that.</ThemedText>
+                  <ThemedText type="default" themeColor="textSecondary">
+                    No city passes every filter for this group in {monthName(trip.month)}. Loosen the
+                    flight limit or drop a vibe.
+                  </ThemedText>
+                  <Button title="Refine" variant="secondary" onPress={() => setRefineOpen(true)} />
+                </Card>
+              </Animated.View>
+            )}
+            {ranked && !showAll && ranked.length > INITIAL_VISIBLE && (
+              <Button
+                title={`Show all ${ranked.length} cities`}
+                variant="secondary"
+                onPress={() => setShowAll(true)}
+              />
+            )}
+          </View>
         </View>
+        {!wide && monthsBlock}
       </Animated.ScrollView>
 
       <RefineSheet
@@ -335,7 +376,7 @@ export default function ResultsScreen() {
 
       {toast && (
         <Animated.View
-          entering={FadeInDown.springify().damping(Motion.glide.damping)}
+          entering={enter(FadeInDown.springify().damping(Motion.glide.damping))}
           exiting={FadeOutDown.duration(Motion.duration.fast)}
           pointerEvents="none"
           style={[styles.toast, { bottom: insets.bottom + Spacing.four, backgroundColor: theme.text }]}>
@@ -358,6 +399,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three + 4,
     gap: Spacing.four,
   },
+  stack: { gap: Spacing.four },
+  columns: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.five },
+  side: { width: 440 },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,6 +443,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three - 4,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
   },
 });

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,11 +8,14 @@ import { Avatar } from '@/components/avatar';
 import { BOTTOM_BAR_CLEARANCE, BottomBar } from '@/components/bottom-bar';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { PageTitle } from '@/components/page-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WorldMap } from '@/components/world-map';
+import { Flag } from '@/components/flag';
 import { MaxContentWidth, Motion, Spacing, travelerColor } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { useEntrance } from '@/hooks/use-entrance';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { getCity } from '@/lib/data/cities';
 import { monthName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -22,12 +25,15 @@ import { useTrips } from '@/lib/store';
 /** Landing screen for shared trip links (/join?d=<encoded trip>). */
 export default function JoinScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const enter = useEntrance();
   const { d } = useLocalSearchParams<{ d?: string }>();
   const { saveTrip } = useTrips();
 
   const trip = useMemo(() => (d ? decodeTrip(d) : null), [d]);
+  // The static page has no ?d=, so paint nothing until the real URL is known
+  // rather than flashing the error (and mismatching hydration).
+  const hydrated = useHydrated();
 
   const accept = () => {
     if (!trip) return;
@@ -35,6 +41,8 @@ export default function JoinScreen() {
     saveTrip(trip);
     router.replace(`/trip/${trip.id}`);
   };
+
+  if (!hydrated) return <ThemedView style={styles.screen} />;
 
   if (!trip || trip.travelers.length === 0) {
     return (
@@ -52,22 +60,20 @@ export default function JoinScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle title="You're invited" />
       <ScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + Spacing.five, paddingBottom: BOTTOM_BAR_CLEARANCE },
         ]}>
-        <Animated.View entering={FadeInDown.duration(Motion.duration.slow)} style={{ gap: Spacing.two }}>
-          <ThemedText type="label" style={{ color: theme.tint }}>
-            You&apos;re invited
-          </ThemedText>
+        <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))} style={{ gap: Spacing.two }}>
           <ThemedText type="display">{trip.name}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {monthName(trip.month)} · {trip.nights} nights · {trip.travelers.length} friends so far
+            You&apos;re invited · {monthName(trip.month)} · {trip.nights} nights · {trip.travelers.length} friends so far
           </ThemedText>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(80).duration(Motion.duration.slow))}>
           <Card style={{ padding: Spacing.two }}>
             <WorldMap
               origins={trip.travelers.map((t, i) => ({ key: t.id, code: t.originCode, color: travelerColor(i) }))}
@@ -75,7 +81,7 @@ export default function JoinScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(140).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(140).duration(Motion.duration.slow))}>
           <Card style={styles.list}>
             {trip.travelers.map((t, i) => {
               const city = getCity(t.originCode);
@@ -85,7 +91,7 @@ export default function JoinScreen() {
                   <ThemedText type="defaultBold" style={{ flex: 1 }}>
                     {t.name}
                   </ThemedText>
-                  <Text style={styles.flag}>{city.flag}</Text>
+                  <Flag emoji={city.flag} />
                   <ThemedText type="small" themeColor="textSecondary">
                     {city.name}
                   </ThemedText>
@@ -95,7 +101,7 @@ export default function JoinScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(Motion.duration.slow)}>
+        <Animated.View entering={enter(FadeInDown.delay(200).duration(Motion.duration.slow))}>
           <ThemedText type="body" themeColor="textSecondary">
             Take a copy of this trip, add yourself and what you can spend, and see which city works
             out fairest for the group.
@@ -121,5 +127,4 @@ const styles = StyleSheet.create({
   },
   list: { padding: Spacing.three, gap: Spacing.three },
   travelerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  flag: { fontSize: 17 },
 });

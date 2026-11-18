@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -56,22 +56,32 @@ function fit(box: Box, aspect: number): Box {
   return { x: box.x, y: box.y + (box.h - h) / 2, w: box.w, h };
 }
 
-function landPath(radius: number): string {
+const DOT_RADIUS = LAND_STEP * 0.24;
+
+/**
+ * Every land dot as one path, built once for all maps. On the web each dot
+ * is a zero-length segment drawn with a round cap (6× shorter than two arcs
+ * per dot); native renderers get explicit circles.
+ */
+const LAND_PATH = (() => {
   const parts: string[] = [];
   for (let i = 0; i < LAND_DOTS.length; i += 2) {
-    const x = LAND_DOTS[i] - radius;
+    const lon = LAND_DOTS[i];
     const y = -LAND_DOTS[i + 1];
-    parts.push(`M${x.toFixed(2)} ${y}a${radius} ${radius} 0 1 0 ${radius * 2} 0a${radius} ${radius} 0 1 0 ${-radius * 2} 0`);
+    if (Platform.OS === 'web') {
+      parts.push(`M${lon} ${y}h0`);
+    } else {
+      const r = DOT_RADIUS;
+      parts.push(`M${(lon - r).toFixed(2)} ${y}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0`);
+    }
   }
   return parts.join('');
-}
+})();
 
 export function WorldMap({ origins = [], destination, markers = [], aspect = 1.9, focus = true }: WorldMapProps) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const height = width / aspect;
-
-  const dots = useMemo(() => landPath(LAND_STEP * 0.24), []);
 
   const originPoints = origins.map((o) => ({ ...o, city: getCity(o.code) }));
   const dest = destination ? getCity(destination) : undefined;
@@ -100,11 +110,15 @@ export function WorldMap({ origins = [], destination, markers = [], aspect = 1.9
       style={[styles.frame, { height: height || undefined, aspectRatio: aspect }]}>
       {width > 0 && (
         <Svg width={width} height={height} viewBox={`${x} ${y} ${w} ${h}`}>
-          <Path d={dots} fill={theme.land} />
+          {Platform.OS === 'web' ? (
+            <Path d={LAND_PATH} stroke={theme.land} strokeWidth={DOT_RADIUS * 2} strokeLinecap="round" />
+          ) : (
+            <Path d={LAND_PATH} fill={theme.land} />
+          )}
 
           {markers.map((code) => {
             const c = getCity(code);
-            return <Circle key={code} cx={c.lon} cy={-c.lat} r={2.2 * px} fill={theme.tint} opacity={0.8} />;
+            return <Circle key={code} cx={c.lon} cy={-c.lat} r={2.2 * px} fill={theme.text} opacity={0.75} />;
           })}
 
           {dest &&
@@ -172,7 +186,11 @@ export function WorldMap({ origins = [], destination, markers = [], aspect = 1.9
             { backgroundColor: theme.text, opacity: draw },
             labelPosition(toScreen(dest.lon, dest.lat), width, height),
           ]}>
-          <ThemedText type="caption" style={{ color: theme.background }}>
+          <ThemedText type="caption" style={{ color: theme.card }} numberOfLines={1}>
+            <ThemedText type="caption" style={{ color: theme.card, fontWeight: '800' }}>
+              {dest.code}
+            </ThemedText>
+            {'  '}
             {dest.name}
           </ThemedText>
         </View>
@@ -204,6 +222,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     paddingVertical: 4,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.sm,
   },
 });

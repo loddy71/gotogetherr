@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SectionList, StyleSheet, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Sheet } from '@/components/sheet';
 import { ThemedText } from '@/components/themed-text';
+import { Flag } from '@/components/flag';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { CITIES, REGIONS, regionOf, type City } from '@/lib/data/cities';
@@ -55,7 +56,7 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
         style={[styles.field, { backgroundColor: theme.backgroundSelected }]}>
         {selected ? (
           <View style={styles.fieldRow}>
-            <Text style={styles.flag}>{selected.flag}</Text>
+            <Flag emoji={selected.flag} />
             <ThemedText type="defaultBold">{selected.name}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1 }} numberOfLines={1}>
               {selected.country}
@@ -116,7 +117,7 @@ export function CityPicker({ value, placeholder = 'Choose a city', onSelect }: C
                 scaleTo={0.98}
                 onPress={() => pick(item)}
                 style={[styles.row, isSelected && { backgroundColor: theme.backgroundSelected }]}>
-                <Text style={styles.flag}>{item.flag}</Text>
+                <Flag emoji={item.flag} />
                 <ThemedText type="default" style={{ flex: 1 }}>
                   {item.name}
                 </ThemedText>
@@ -146,9 +147,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  flag: {
-    fontSize: 18,
   },
   search: {
     flexDirection: 'row',

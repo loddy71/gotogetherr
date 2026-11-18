@@ -52,8 +52,8 @@ export function MonthChart({ options, month, stale, onPlan }: MonthChartProps) {
         {selected?.cityCode ? (
           <>
             <ThemedText type="defaultBold">
-              {monthName(selected.month)}: {getCity(selected.cityCode).flag}{' '}
-              {getCity(selected.cityCode).name}, {money(selected.avgCost)} each
+              {monthName(selected.month)}: {getCity(selected.cityCode).name},{' '}
+              {money(selected.avgCost)} each
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {preview === month
@@ -72,7 +72,8 @@ export function MonthChart({ options, month, stale, onPlan }: MonthChartProps) {
         {options.map((o) => {
           const isPreview = o.month === preview;
           const isCheapest = o.month === cheapest?.month;
-          const color = isCheapest ? theme.tint : isPreview ? theme.text : theme.chartMark;
+          // Orange is selection (the month you're looking at); ink marks the cheapest.
+          const color = isPreview ? theme.tint : isCheapest ? theme.text : theme.chartMark;
           const label = isCheapest || isPreview;
           return (
             <Pressable
@@ -120,7 +121,7 @@ export function MonthChart({ options, month, stale, onPlan }: MonthChartProps) {
       <View style={styles.footer}>
         {cheapest?.cityCode ? (
           <View style={styles.legend}>
-            <View style={[styles.swatch, { backgroundColor: theme.tint }]} />
+            <View style={[styles.swatch, { backgroundColor: theme.text }]} />
             <ThemedText type="caption" themeColor="textSecondary">
               Cheapest: {monthName(cheapest.month)}
             </ThemedText>

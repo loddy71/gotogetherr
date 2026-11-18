@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "expo@claude-plugins-official": true
-  },
   "hooks": {
     "Stop": [
       {
@@ -15,5 +12,17 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true,
+    "impeccable@impeccable": true
+  },
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    }
   }
 }

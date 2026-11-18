@@ -109,9 +109,9 @@ export function getCity(code: string): City {
   return city;
 }
 
-export function cityLabel(code: string): string {
-  const city = byCode.get(code);
-  return city ? `${city.flag} ${city.name}` : code;
+/** True for a code in the 50-city set (share links and stored trips are untrusted). */
+export function isCityCode(code: unknown): code is string {
+  return typeof code === 'string' && byCode.has(code);
 }
 
 /** Hotel season for a city in a given month. */

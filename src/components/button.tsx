@@ -3,12 +3,12 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from '@/components/icon';
 import { PressableScale, type PressableScaleProps } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { DangerColor, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableScaleProps, 'style' | 'children'> & {
   title: string;
-  /** primary: ink pill · secondary: outlined pill · destructive: red outline · ghost: bare */
+  /** primary: signal-orange slab · secondary: outlined · destructive: red outline · ghost: bare */
   variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
   icon?: IconName;
   size?: 'large' | 'small';
@@ -25,20 +25,21 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme();
 
-  const background = variant === 'primary' ? theme.text : 'transparent';
+  // The primary path is signal orange; everything else is ink on stock.
+  const background = variant === 'primary' ? theme.tint : 'transparent';
   const borderColor =
     variant === 'primary'
-      ? theme.text
+      ? theme.tint
       : variant === 'destructive'
-        ? DangerColor
+        ? theme.danger
         : variant === 'ghost'
           ? 'transparent'
           : theme.borderStrong;
   const color =
     variant === 'primary'
-      ? theme.background
+      ? theme.onTint
       : variant === 'destructive'
-        ? DangerColor
+        ? theme.danger
         : theme.text;
 
   return (
@@ -67,11 +68,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
     borderWidth: 1,
   },
   small: {
-    minHeight: 38,
+    minHeight: TouchTarget,
     paddingHorizontal: Spacing.three,
   },
   row: {

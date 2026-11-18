@@ -18,12 +18,14 @@ import { BOTTOM_BAR_CLEARANCE, BottomBar } from '@/components/bottom-bar';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { CityPicker } from '@/components/city-picker';
+import { PageTitle } from '@/components/page-title';
 import { Icon } from '@/components/icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { HeaderIconButton } from '@/components/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { DisplayFont, MaxContentWidth, Motion, Radius, Spacing } from '@/constants/theme';
+import { DisplayFont, MaxContentWidth, Motion, Radius, Spacing, TouchTarget } from '@/constants/theme';
+import { useEntrance } from '@/hooks/use-entrance';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { MONTHS, newId } from '@/lib/format';
@@ -34,10 +36,18 @@ const layoutSpring = LinearTransition.springify().damping(Motion.glide.damping);
 
 /** Create a new trip, or edit an existing one when `?id=` is passed. */
 export default function TripFormScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { hydrated } = useTrips();
+  // The form seeds its state once, so wait for storage before editing.
+  if (id && !hydrated) return <ThemedView style={styles.screen} />;
+  return <TripForm id={id} />;
+}
+
+function TripForm({ id }: { id?: string }) {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const enter = useEntrance();
   const existing = useTrip(id);
   const { saveTrip, deleteTrip } = useTrips();
 
@@ -65,6 +75,7 @@ export default function TripFormScreen() {
       nights,
       travelers: validTravelers.map((t, i) => ({ ...t, name: t.name.trim() || `Friend ${i + 1}` })),
       fairnessWeight: existing?.fairnessWeight ?? 0.5,
+      filters: existing?.filters,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     haptic('success');
@@ -81,6 +92,7 @@ export default function TripFormScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <PageTitle title={existing ? 'Edit trip' : 'Plan a trip'} />
       <View style={[styles.topBar, { paddingTop: Platform.OS === 'ios' ? Spacing.three : insets.top + Spacing.two }]}>
         <ThemedText type="heading">{existing ? 'Edit trip' : 'Plan a trip'}</ThemedText>
         <HeaderIconButton icon="close" label="Close" onPress={close} />
@@ -91,7 +103,7 @@ export default function TripFormScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE + Spacing.four }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          <Animated.View entering={FadeInDown.duration(Motion.duration.slow)}>
+          <Animated.View entering={enter(FadeInDown.duration(Motion.duration.slow))}>
             <Section label="Trip name">
               <TextInput
                 value={name}
@@ -103,7 +115,7 @@ export default function TripFormScreen() {
             </Section>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(60).duration(Motion.duration.slow)}>
+          <Animated.View entering={enter(FadeInDown.delay(60).duration(Motion.duration.slow))}>
             <Section label="When">
               <View style={styles.months}>
                 {MONTHS.map((label, i) => (
@@ -116,7 +128,7 @@ export default function TripFormScreen() {
                 ))}
               </View>
               <View style={[styles.nightsRow, { borderTopColor: theme.border }]}>
-                <View>
+                <View style={{ flex: 1 }}>
                   <ThemedText type="defaultBold">Nights</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
                     Hotel and daily costs scale with this
@@ -131,7 +143,7 @@ export default function TripFormScreen() {
             </Section>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(120).duration(Motion.duration.slow)} layout={layoutSpring}>
+          <Animated.View entering={enter(FadeInDown.delay(120).duration(Motion.duration.slow))} layout={layoutSpring}>
             <ThemedText type="label" themeColor="textSecondary" style={styles.sectionLabel}>
               Who&apos;s coming
             </ThemedText>
@@ -139,7 +151,7 @@ export default function TripFormScreen() {
               {travelers.map((traveler, i) => (
                 <Animated.View
                   key={traveler.id}
-                  entering={FadeInDown.springify().damping(Motion.glide.damping)}
+                  entering={enter(FadeInDown.springify().damping(Motion.glide.damping))}
                   exiting={FadeOut.duration(Motion.duration.fast)}
                   layout={layoutSpring}>
                   <Card style={styles.traveler}>
@@ -155,10 +167,11 @@ export default function TripFormScreen() {
                       {travelers.length > 2 && (
                         <PressableScale
                           accessibilityLabel={`Remove ${traveler.name || `friend ${i + 1}`}`}
-                          hitSlop={10}
                           onPress={() => setTravelers((prev) => prev.filter((t) => t.id !== traveler.id))}
-                          style={[styles.remove, { backgroundColor: theme.backgroundSelected }]}>
-                          <Icon name="close" size={14} color={theme.textSecondary} strokeWidth={2.2} />
+                          style={styles.removeHit}>
+                          <View style={[styles.remove, { backgroundColor: theme.backgroundSelected }]}>
+                            <Icon name="close" size={14} color={theme.textSecondary} strokeWidth={2.2} />
+                          </View>
                         </PressableScale>
                       )}
                     </View>
@@ -246,12 +259,12 @@ function MonthCell({ label, selected, onPress }: { label: string; selected: bool
         style={[
           styles.monthPill,
           {
-            backgroundColor: selected ? theme.text : 'transparent',
+            backgroundColor: selected ? theme.tint : 'transparent',
             transitionProperty: 'backgroundColor',
             transitionDuration: Motion.duration.base,
           },
         ]}>
-        <ThemedText type="smallBold" style={{ color: selected ? theme.background : theme.textSecondary }}>
+        <ThemedText type="smallBold" style={{ color: selected ? theme.onTint : theme.textSecondary }}>
           {label}
         </ThemedText>
       </Animated.View>
@@ -314,8 +327,8 @@ const styles = StyleSheet.create({
   monthPill: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: Radius.pill,
+    minHeight: 40,
+    borderRadius: Radius.sm,
   },
   nightsRow: {
     flexDirection: 'row',
@@ -324,11 +337,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.three,
   },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 4 },
   stepperButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: TouchTarget,
+    height: TouchTarget,
+    borderRadius: TouchTarget / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -336,7 +349,16 @@ const styles = StyleSheet.create({
   nightsValue: { minWidth: 28, textAlign: 'center' },
   traveler: { padding: Spacing.three, gap: Spacing.two + 2 },
   travelerHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  nameInput: { flex: 1, fontSize: 18, fontWeight: '600', paddingVertical: Spacing.one },
+  // minWidth 0: a web <input> otherwise keeps its intrinsic width and pushes
+  // the remove button out of the card.
+  nameInput: { flex: 1, minWidth: 0, fontSize: 18, fontWeight: '600', paddingVertical: Spacing.one },
+  removeHit: {
+    width: TouchTarget,
+    height: TouchTarget,
+    marginRight: -Spacing.two,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   remove: {
     width: 28,
     height: 28,

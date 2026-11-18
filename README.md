@@ -20,13 +20,37 @@ One codebase, three targets: it runs as a web app and as a native **iOS**
 
 ## Design
 
-Paper and ink, softened. The palette is warm paper stock, ink type and one
-stamp-red accent used sparingly. Instrument Serif carries the display type.
-Surfaces are rounded cards with hairline edges and very soft shadows. There
-are no gradients, and no emoji used as icons (flags stay, because they're
-data).
+**The boarding-pass world.** Every friend holds their own pass to the same
+city, so fairness is read pass by pass, not as one group total. The look was
+chosen through [Impeccable](https://impeccable.style)'s redesign flow
+(product interview, a seeded direction roll, a separate finish review); the
+system is recorded in [DESIGN.md](DESIGN.md) and the product brief in
+[PRODUCT.md](PRODUCT.md).
 
-**Motion is the point of this version.** One set of springs and curves in
+- **Palette:** airport-grey ground, white pass stock, near-black ink. One
+  signal orange is reserved for the best match, selection and the primary
+  action. Each traveler owns a saturated livery colour that bands their pass
+  and their route on the map. Night-flight dark mode.
+- **Type:** Sofia Sans Condensed sets airport codes (LON, IST), city names
+  and big figures; the platform sans does everything else, with tabular
+  figures. Tracked caps appear only as data labels printed on a pass.
+- **Signature:** "Who pays what" is a stack of boarding passes: carrier
+  strip, FROM/TO codes, ruled FLIGHT/NIGHTS/DATES cells, a perforation and a
+  stub holding what that person pays. On wide screens the stub tears off to
+  the side. First run opens on a live-priced specimen stack.
+- **Layout:** one column on phones (ranking before the month chart), two
+  columns from 1024 px. Flags are SVG, so they render on Windows too.
+
+The mark (three travelers' routes landing on one orange point) is drawn once
+in `scripts/icon/mark.svg`; `node scripts/gen-icons.mjs` renders the app
+icon, Android adaptive layers, splash and favicon from it.
+
+Accessibility floor: text ≥ 4.5:1 contrast in both themes, 44 pt touch
+targets, headings exposed to screen readers, a visible keyboard focus ring
+and themed selection on the web, and reduced motion respected (including
+the static web export's first paint).
+
+**Motion.** One set of springs and curves in
 `src/constants/theme.ts` (`Motion`) drives everything:
 
 - Switching Cheapest / Balanced / Fairest slides the segmented thumb,
@@ -42,7 +66,8 @@ data).
 
 Shared primitives: `PressableScale`, `Card`, `Button`, `Chip`, `Avatar`,
 `Segmented`, `Sheet`, `WorldMap`, `CostBar`, `AnimatedNumber`,
-`ScreenHeader`.
+`ScreenHeader`, `BrandMark`, `PageTitle`, `BoardingPass`, `SpecimenPasses`,
+`Flag`.
 
 ## How the ranking works
 
@@ -102,6 +127,13 @@ or tweak budgets.
 
 ## Pricing: calibrated estimates, live quotes when you want them
 
+Pricing and scoring are separate steps (`src/lib/scoring.ts`): a trip's
+cost grid is priced once per month, nights, origins and budgets, then cached;
+switching mode, filtering or vetoing only re-scores it, which is synchronous
+and takes under a millisecond. Live quotes are fetched in parallel (8 at a
+time, 4 s timeout), and after three failures in a row the app stops asking
+the proxy for a minute and uses estimates.
+
 Prices come from a deterministic estimator (`src/lib/pricing/`) calibrated
 in September 2026 against published fares and hotel rates. On seven
 benchmark routes it lands within ±11% of the typical return fare, and
@@ -148,7 +180,13 @@ npm run lint         # eslint (expo lint)
 npm run check:data   # dataset sanity + fare calibration against benchmarks
 npm run build:web    # static web export into dist/
 npm run e2e          # Playwright smoke test against dist/ (light + dark)
+node scripts/gen-icons.mjs   # re-render icons/splash/favicon from the mark
+node scripts/gen-flags.mjs   # regenerate SVG flags after adding a country
 ```
+
+The project enables the [Impeccable](https://github.com/pbakaus/impeccable)
+design plugin in `.claude/settings.json`; Claude Code sessions on this repo
+can run `/impeccable audit`, `/impeccable polish` and friends.
 
 ### Project layout
 

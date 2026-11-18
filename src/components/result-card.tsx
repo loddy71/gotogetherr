@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AnimatedNumber } from '@/components/animated-number';
 import { Card } from '@/components/card';
@@ -6,7 +6,8 @@ import { Chip } from '@/components/chip';
 import { CostBar } from '@/components/cost-bar';
 import { PressableScale } from '@/components/pressable-scale';
 import { ThemedText } from '@/components/themed-text';
-import { DangerColor, Spacing } from '@/constants/theme';
+import { Flag } from '@/components/flag';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCity, weatherFor } from '@/lib/data/cities';
 import { money } from '@/lib/format';
@@ -29,19 +30,21 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
 
   return (
     <PressableScale onPress={onPress} scaleTo={0.985}>
-      <Card style={[styles.card, isTop && { borderColor: theme.tint, borderWidth: 1 }]}>
+      <Card style={[styles.card, isTop && { borderColor: theme.tint, borderWidth: 2 }]}>
         <View style={styles.head}>
-          <ThemedText
-            type="numeral"
-            style={[styles.rank, { color: isTop ? theme.tint : theme.textSecondary }]}>
+          <ThemedText type="numeral" themeColor="textSecondary" style={styles.rank}>
             {rank}
           </ThemedText>
-          <View style={{ flex: 1, gap: 2 }}>
+          {/* The airport code is the row's display voice, as on a pass. */}
+          <ThemedText type="iata" style={styles.code}>
+            {city.code}
+          </ThemedText>
+          <View style={{ flex: 1, gap: 1 }}>
             <View style={styles.cityLine}>
-              <Text style={styles.flag}>{city.flag}</Text>
-              <ThemedText type="heading" numberOfLines={1} style={{ flexShrink: 1 }}>
+              <ThemedText type="defaultBold" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {city.name}
               </ThemedText>
+              <Flag emoji={city.flag} width={18} />
             </View>
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
               {city.country} · {city.vibes.slice(0, 2).join(', ')}
@@ -50,7 +53,7 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
           <View style={styles.price}>
             <AnimatedNumber type="price" value={result.avgCost} format={money} />
             <ThemedText type="caption" themeColor="textSecondary">
-              each
+              each, est.
             </ThemedText>
           </View>
         </View>
@@ -74,7 +77,7 @@ export function ResultCard({ rank, result, month, onPress, revealDelay = 0 }: Re
           <View style={styles.flags}>
             {isTop && <Chip label="Best match" tone="accent" />}
             {result.overBudgetCount > 0 && (
-              <ThemedText type="caption" style={{ color: DangerColor }}>
+              <ThemedText type="caption" style={{ color: theme.danger }}>
                 Over budget for {result.overBudgetCount}
               </ThemedText>
             )}
@@ -92,20 +95,19 @@ const styles = StyleSheet.create({
   },
   head: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.two + 2,
   },
   rank: {
-    width: 22,
-    paddingTop: 4,
+    width: 20,
+  },
+  code: {
+    minWidth: 58,
   },
   cityLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  flag: {
-    fontSize: 18,
   },
   price: {
     alignItems: 'flex-end',

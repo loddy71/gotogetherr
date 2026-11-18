@@ -1,4 +1,7 @@
-import { InstrumentSerif_400Regular, useFonts } from '@expo-google-fonts/instrument-serif';
+// Per-weight imports: the package root would bundle every weight and italic.
+import { SofiaSansCondensed_700Bold } from '@expo-google-fonts/sofia-sans-condensed/700Bold';
+import { SofiaSansCondensed_800ExtraBold } from '@expo-google-fonts/sofia-sans-condensed/800ExtraBold';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -17,11 +20,14 @@ export default function RootLayout() {
   const dark = colorScheme === 'dark';
   const palette = dark ? Colors.dark : Colors.light;
 
-  const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular });
+  // expo-font's hook also emits @font-face into the static web export, so the
+  // display face paints with the page instead of after the bundle runs.
+  const [fontsLoaded, fontError] = useFonts({ SofiaSansCondensed_700Bold, SofiaSansCondensed_800ExtraBold });
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    // Never strand the splash: fall back to the system sans on error.
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
 
   const navTheme = {
     ...(dark ? DarkTheme : DefaultTheme),

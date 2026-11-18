@@ -15,6 +15,8 @@ import { averageHighC, CITIES, getCity, hotelSeasonFactor, weatherFor } from '@/
 import { hasVibe, passesFilters, restoreCity, sanitizeFilters, toggleVeto, vetoedCities } from '@/lib/filters';
 import { flightLinks, hotelLink, isoDate, suggestedDates } from '@/lib/booking';
 import { MockPriceProvider } from '@/lib/pricing/mock-provider';
+import { priceGrid, rankDestinations } from '@/lib/scoring';
+import { decodeTrip, encodeTrip } from '@/lib/share-codec';
 import type { Trip } from '@/lib/types';
 
 /** Typical return economy fare, USD (midpoint of the published range). */
@@ -144,7 +146,28 @@ check(
   `sanitizeFilters drops unknown values (got ${JSON.stringify(clean)})`,
 );
 
-fareReport().then((report) => {
+// ── 5. Ranking cache and share-link hardening ───────────────────────────
+async function pipelineChecks() {
+  const base = trip(10, ['LON', 'NYC', 'TYO']);
+  const sameGrid =
+    priceGrid(base) === priceGrid({ ...base, fairnessWeight: 0.9 }) &&
+    priceGrid(base) === priceGrid(toggleVeto(base, '0', 'LIS')) &&
+    priceGrid(base) === priceGrid({ ...base, filters: { vibes: ['beach'], maxFlightHours: 8, avoidBadWeather: true } });
+  check(sameGrid, 'cache: mode, vetoes and filters must not re-price');
+  check(priceGrid(base) !== priceGrid({ ...base, month: 11 }), 'cache: a new month re-prices');
+  const cheapest = (await rankDestinations({ ...base, fairnessWeight: 0.1 }))[0];
+  const fairest = (await rankDestinations({ ...base, fairnessWeight: 0.9 }))[0];
+  check(cheapest.totalCost <= fairest.totalCost, 'ranking: cheapest mode leads with a lower total');
+  check(fairest.fairness >= cheapest.fairness, 'ranking: fairest mode leads with a more even split');
+
+  const link = (origins: string[]) => encodeTrip(trip(5, origins));
+  check(decodeTrip(link(['LON', 'ZZZ']))?.travelers.length === 1, 'share: unknown origin cities are dropped');
+  check(decodeTrip(link(['ZZZ'])) === null, 'share: a link with no valid traveler is rejected');
+  const many = decodeTrip(link(Array.from({ length: 40 }, () => 'LON')));
+  check(many?.travelers.length === 12, 'share: group size is capped at 12');
+}
+
+Promise.all([fareReport(), pipelineChecks()]).then(([report]) => {
   console.log(`Checked ${CITIES.length} cities.`);
   console.log(`Fare calibration (annual average):\n${report.join('\n')}`);
   if (failures.length) {

@@ -45,3 +45,6 @@ example
 
 # e2e artifacts
 e2e/.artifacts/
+
+# Impeccable: downloaded catalog reference images (re-fetchable, not ours)
+.impeccable/reference/
